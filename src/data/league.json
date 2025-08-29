@@ -1,0 +1,107 @@
+{
+  "divisiones": {
+    "A": {
+      "equipos": [
+        { "id": "a1", "nombre": "Club Aurora", "escudo": "https://placehold.co/64x64?text=AUR" },
+        { "id": "a2", "nombre": "Deportivo Barrio", "escudo": "https://placehold.co/64x64?text=DEP" },
+        { "id": "a3", "nombre": "Atlético Centro", "escudo": "https://placehold.co/64x64?text=CEN" }
+      ],
+      "jugadores": [
+        { "id": "ja1", "nombre": "Juan Pérez", "equipoId": "a1", "foto": "https://i.pravatar.cc/100?img=1" },
+        { "id": "ja2", "nombre": "Carlos López", "equipoId": "a2", "foto": "https://i.pravatar.cc/100?img=2" },
+        { "id": "ja3", "nombre": "Pedro Gómez", "equipoId": "a3", "foto": "https://i.pravatar.cc/100?img=3" }
+      ],
+      "partidos": [
+        {
+          "id": "pa1",
+          "fechaNumero": 1,
+          "fechaCalendario": "2025-08-17",
+          "localId": "a1",
+          "visitanteId": "a2",
+          "golesLocal": 2,
+          "golesVisitante": 1,
+          "eventos": [
+            { "minuto": 10, "tipo": "gol", "jugadorId": "ja1", "equipoId": "a1" },
+            { "minuto": 55, "tipo": "gol", "jugadorId": "ja2", "equipoId": "a2" },
+            { "minuto": 78, "tipo": "gol", "jugadorId": "ja1", "equipoId": "a1" }
+          ],
+          "comentarios": [
+            { "usuario": "agus", "texto": "Partidazo", "timestamp": "2025-08-17T18:30:00" }
+          ]
+        },
+        {
+          "id": "pa2",
+          "fechaNumero": 1,
+          "fechaCalendario": "2025-08-17",
+          "localId": "a3",
+          "visitanteId": "a1",
+          "golesLocal": 0,
+          "golesVisitante": 0,
+          "eventos": [],
+          "comentarios": []
+        },
+        {
+          "id": "pa3",
+          "fechaNumero": 2,
+          "fechaCalendario": "2025-08-24",
+          "localId": "a2",
+          "visitanteId": "a3",
+          "golesLocal": 1,
+          "golesVisitante": 3,
+          "eventos": [
+            { "minuto": 22, "tipo": "gol", "jugadorId": "ja2", "equipoId": "a2" },
+            { "minuto": 30, "tipo": "gol", "jugadorId": "ja3", "equipoId": "a3" },
+            { "minuto": 61, "tipo": "gol", "jugadorId": "ja3", "equipoId": "a3" },
+            { "minuto": 83, "tipo": "gol", "jugadorId": "ja3", "equipoId": "a3" }
+          ],
+          "comentarios": []
+        }
+      ],
+      "votaciones": {
+        "fecha_2": {
+          "abierto": true,
+          "abre": "2025-08-25T00:00:00",
+          "cierra": "2025-08-29T23:59:59",
+          "votos": [],
+          "resultado": { "ganador": null, "top5": [] }
+        }
+      },
+      "rankingGlobal": [
+        { "jugadorId": "ja1", "puntos": 1 },
+        { "jugadorId": "ja3", "puntos": 0 },
+        { "jugadorId": "ja2", "puntos": 0 }
+      ]
+    },
+    "B": {
+      "equipos": [
+        { "id": "b1", "nombre": "Río FC", "escudo": "https://placehold.co/64x64?text=RIO" },
+        { "id": "b2", "nombre": "Monte Verde", "escudo": "https://placehold.co/64x64?text=MON" }
+      ],
+      "jugadores": [
+        { "id": "jb1", "nombre": "Luis Ramírez", "equipoId": "b1", "foto": "https://i.pravatar.cc/100?img=4" },
+        { "id": "jb2", "nombre": "Diego Silva", "equipoId": "b2", "foto": "https://i.pravatar.cc/100?img=5" }
+      ],
+      "partidos": [
+        {
+          "id": "pb1",
+          "fechaNumero": 1,
+          "fechaCalendario": "2025-08-17",
+          "localId": "b1",
+          "visitanteId": "b2",
+          "golesLocal": 1,
+          "golesVisitante": 1,
+          "eventos": [
+            { "minuto": 12, "tipo": "gol", "jugadorId": "jb1", "equipoId": "b1" },
+            { "minuto": 60, "tipo": "gol", "jugadorId": "jb2", "equipoId": "b2" }
+          ],
+          "comentarios": []
+        }
+      ],
+      "votaciones": {},
+      "rankingGlobal": [
+        { "jugadorId": "jb1", "puntos": 0 },
+        { "jugadorId": "jb2", "puntos": 0 }
+      ]
+    }
+  }
+}
