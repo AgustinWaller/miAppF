@@ -1,0 +1,32 @@
+pluginManagement {
+  repositories {
+    gradlePluginPortal()
+    google()
+    mavenCentral()
+    // Repositorio de artefactos de React Native (AARs)
+    maven { url("$rootDir/../node_modules/react-native/android") }
+  }
+
+  // Incluir el plugin de RN desde node_modules (paquete oficial)
+  includeBuild("../node_modules/@react-native/gradle-plugin")
+}
+
+plugins {
+  id("com.facebook.react.settings")
+}
+
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+  ex.autolinkLibrariesFromCommand()
+}
+
+rootProject.name = "miAppF"
+include(":app")
+
+// Repositorios para todas las dependencias
+dependencyResolutionManagement {
+  repositories {
+    mavenCentral()
+    google()
+    maven { url("$rootDir/../node_modules/react-native/android") }
+  }
+}

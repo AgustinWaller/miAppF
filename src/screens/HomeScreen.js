@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { getUltimaFechaNumero } from "../utils/leagueUtils";
+import { getUltimaFechaNumero } from "../utils/storage";
 
 export default function HomeScreen({ division, setDivision, navigation }) {
   const ultima = getUltimaFechaNumero(division);

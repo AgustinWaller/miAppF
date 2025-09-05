@@ -1,33 +1,27 @@
 {
   "expo": {
-    "name": "miAppF",
-    "slug": "miAppF",
+    "name": "Futbol App",
+    "slug": "myappf",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true
-    },
+    "sdkVersion": "52.0.0",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
+      "package": "com.agustinwaller.myappf"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-font"
+    ],
     "extra": {
       "eas": {
-        "projectId": "25320b85-8b93-43f9-a1c6-582d373f6861"
+        "projectId": "e1a47852-17e1-4bc0-8113-8dbe71971d38"
       }
     }
   }

@@ -1,0 +1,17 @@
+{
+  "cli": { "version": ">= 3.22.0" },
+  "build": {
+    "preview": {
+      "android": { "buildType": "apk" },
+      "distribution": "internal"
+    },
+    "production": {
+      "android": { "gradleCommand": ":app:bundleRelease" }
+    },
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": { "gradleCommand": ":app:assembleDebug" }
+    }
+  }
+}

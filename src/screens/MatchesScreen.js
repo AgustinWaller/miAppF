@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
 import league from "../data/league.json";
-import { getDivisionData, getUltimaFechaNumero, partidosPorFecha, nombreEquipo } from "../utils/leagueUtils";
+import { getDivisionData, getUltimaFechaNumero, partidosPorFecha, nombreEquipo } from "../utils/storage";
 
 export default function MatchesScreen({ division }) {
   const ultimaFecha = getUltimaFechaNumero(division);

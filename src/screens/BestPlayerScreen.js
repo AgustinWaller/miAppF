@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Alert } from "react-native";
 import league from "../data/league.json";
-import { getDivisionData, jugadoresPorEquipo } from "../utils/leagueUtils";
+import { getDivisionData, jugadoresPorEquipo } from "../utils/storage";
 
 const DEMO_USER_ID = "demoUser"; // en producción: usar login + backend o AsyncStorage
 

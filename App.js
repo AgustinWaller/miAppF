@@ -1,53 +1,68 @@
-import 'react-native-gesture-handler'; // debe ser la primera importación
-import React, { useState } from "react";
-import { NavigationContainer } from "@react-navigation/native";
-import { createDrawerNavigator } from "@react-navigation/drawer";
-import HomeScreen from "./src/screens/HomeScreen";
-import MatchesScreen from "./src/screens/MatchesScreen";
-import StandingsScreen from "./src/screens/StandingsScreen";
-import ScorersScreen from "./src/screens/ScorersScreen";
-import BestPlayerScreen from "./src/screens/BestPlayerScreen";
+import 'react-native-gesture-handler';
+import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { StatusBar } from 'expo-status-bar';
 
-const Drawer = createDrawerNavigator();
+import HomeScreen from './src/screens/HomeScreen';
+import MatchesScreen from './src/screens/MatchesScreen';
+import StandingsScreen from './src/screens/StandingsScreen';
+import TeamsScreen from './src/screens/TeamsScreen';
+import TopPlayersScreen from './src/screens/TopPlayersScreen';
+import BestPlayerScreen from './src/screens/BestPlayerScreen';
+import TeamDetailScreen from './src/screens/TeamDetailScreen';
+import ScoreScreen from './src/screens/ScoreScreen';
+
+const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
+function Tabs() {
+return (
+<Tab.Navigator initialRouteName="Inicio" screenOptions={{ headerShown: false }}>
+<Tab.Screen
+name="Inicio"
+component={HomeScreen}
+options={{ tabBarIcon: ({ focused }) => (<MaterialCommunityIcons name={focused ? 'home' : 'home-outline'} size={22} />) }}
+/>
+<Tab.Screen
+name="Partidos"
+component={MatchesScreen}
+options={{ tabBarIcon: ({ focused }) => (<MaterialCommunityIcons name={focused ? 'calendar' : 'calendar-outline'} size={22} />) }}
+/>
+<Tab.Screen
+name="Tabla"
+component={StandingsScreen}
+options={{ tabBarIcon: ({ focused }) => (<MaterialCommunityIcons name={focused ? 'table' : 'table-large'} size={22} />) }}
+/>
+<Tab.Screen
+name="Equipos"
+component={TeamsScreen}
+options={{ tabBarIcon: ({ focused }) => (<MaterialCommunityIcons name={focused ? 'account-group' : 'account-group-outline'} size={22} />) }}
+/>
+<Tab.Screen
+name="Top"
+component={TopPlayersScreen}
+options={{ tabBarIcon: ({ focused }) => (<MaterialCommunityIcons name={focused ? 'star' : 'star-outline'} size={22} />) }}
+/>
+</Tab.Navigator>
+);
+}
 
 export default function App() {
-  // División seleccionada global (A/B)
-  const [division, setDivision] = useState("A");
-
   return (
-    <NavigationContainer>
-      <Drawer.Navigator
-        initialRouteName="Inicio"
-        screenOptions={{
-          headerStyle: { backgroundColor: "#1e1e1e" },
-          headerTintColor: "#fff",
-          drawerStyle: { backgroundColor: "#121212", width: 260 },
-          drawerActiveTintColor: "#fff",
-          drawerInactiveTintColor: "#ccc",
-        }}
-      >
-        <Drawer.Screen name="Inicio">
-          {(props) => (
-            <HomeScreen {...props} division={division} setDivision={setDivision} />
-          )}
-        </Drawer.Screen>
-
-        <Drawer.Screen name="Partidos">
-          {(props) => <MatchesScreen {...props} division={division} />}
-        </Drawer.Screen>
-
-        <Drawer.Screen name="Tabla de posiciones">
-          {(props) => <StandingsScreen {...props} division={division} />}
-        </Drawer.Screen>
-
-        <Drawer.Screen name="Goleadores">
-          {(props) => <ScorersScreen {...props} division={division} />}
-        </Drawer.Screen>
-
-        <Drawer.Screen name="Mejor jugador de la fecha">
-          {(props) => <BestPlayerScreen {...props} division={division} />}
-        </Drawer.Screen>
-      </Drawer.Navigator>
-    </NavigationContainer>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
+          <Stack.Screen name="VotarFecha" component={BestPlayerScreen} options={{ title: 'Mejor jugador de la fecha' }} />
+          <Stack.Screen name="TeamDetail" component={TeamDetailScreen} options={{ title: 'Equipo' }} />
+          <Stack.Screen name="ScoreDetail" component={ScoreScreen} options={{ title: 'Resultado' }} />
+        </Stack.Navigator>
+      </NavigationContainer>
+      <StatusBar style="auto" />
+    </GestureHandlerRootView>
   );
 }

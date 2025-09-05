@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
-import { calcularTabla } from "../utils/leagueUtils";
+import { calcularTabla } from "../utils/storage";
 
 export default function StandingsScreen({ division }) {
   const tabla = calcularTabla(division);

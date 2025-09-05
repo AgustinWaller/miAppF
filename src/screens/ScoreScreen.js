@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, FlatList, Image, StyleSheet } from "react-native";
-import { calcularGoleadores } from "../utils/leagueUtils";
+import { calcularGoleadores } from "../utils/storage";
 
 export default function ScorersScreen({ division }) {
   const list = calcularGoleadores(division);
