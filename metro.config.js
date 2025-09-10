@@ -1,23 +1,14 @@
 // Metro configuration
-// - Prefer @react-native/metro-config (RN 0.73+ recommended)
-// - Fallback to expo/metro-config if not available
+// - Prefer @react-native/metro-config (RN 0.73+)
+// - Fallback to expo/metro-config (Expo SDK)
 
 let getDefaultConfig;
-let mergeConfig;
-
 try {
-  ({ getDefaultConfig, mergeConfig } = require('@react-native/metro-config'));
+  ({ getDefaultConfig } = require('@react-native/metro-config'));
 } catch (e) {
-  ({ getDefaultConfig, mergeConfig } = require('expo/metro-config'));
+  ({ getDefaultConfig } = require('expo/metro-config'));
 }
 
-const defaultConfig = getDefaultConfig(__dirname);
-
-// Customize here if needed
-const config = {
-  // transformer: {},
-  // resolver: {},
-};
-
-module.exports = mergeConfig(defaultConfig, config);
-
+// For our use case we don't need mergeConfig; return default config directly.
+const config = getDefaultConfig(__dirname);
+module.exports = config;
