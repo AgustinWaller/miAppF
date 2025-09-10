@@ -1,10 +1,11 @@
 buildscript {
   ext {
     buildToolsVersion = "34.0.0"
-    minSdkVersion = 23
+    minSdkVersion = 24
     compileSdkVersion = 34
     targetSdkVersion = 34
     ndkVersion = "26.1.10909125"
+    kotlinVersion = "1.9.24"
   }
   repositories {
     google()
@@ -12,7 +13,7 @@ buildscript {
   }
   dependencies {
     classpath("com.android.tools.build:gradle:8.3.2")
-    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.23")
+    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24")
   }
 }
 
@@ -21,4 +22,3 @@ def libsExt = extensions.findByName("libs")
 if (libsExt != null) {
   ext["expoLibs"] = libsExt
 }
-

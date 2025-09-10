@@ -4,6 +4,26 @@ plugins {
     id "com.facebook.react"
 }
 
+// Cargar el script de autolinking de Expo para el contexto de build.gradle
+def expoAutolinkImplPath = ""
+try {
+  expoAutolinkImplPath = [
+    "node", "--print",
+    "require.resolve('expo-modules-autolinking/scripts/android/autolinking_implementation.gradle')"
+  ].execute(null, rootDir).text.trim()
+} catch (ignore) {
+}
+if (!expoAutolinkImplPath) {
+  expoAutolinkImplPath = new File(rootDir, "../node_modules/expo-modules-autolinking/scripts/android/autolinking_implementation.gradle").getPath()
+}
+def expoAutolinkImplFile = new File(expoAutolinkImplPath)
+ext.expoModulesAutolinkingApplied = expoAutolinkImplFile.isFile()
+if (expoAutolinkImplFile.isFile()) {
+  apply from: expoAutolinkImplFile
+} else {
+  logger.lifecycle("[app/build.gradle] Script de autolinking de Expo no encontrado; continuando sin aplicarlo en esta ejecución.")
+}
+
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
 react {
@@ -25,10 +45,10 @@ android {
     // Establecemos explícito para evitar "compileSdkVersion is not specified"
     compileSdk 34
 
-    namespace 'com.aguwa.miAppF'
+    namespace 'com.agustinwaller.myappf'
     defaultConfig {
-        applicationId 'com.aguwa.miAppF'
-        minSdkVersion 23
+        applicationId 'com.agustinwaller.myappf'
+        minSdkVersion 24
         targetSdkVersion 34
         versionCode 1
         versionName "1.0.0"
@@ -87,5 +107,13 @@ dependencies {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
+    }
+
+    // Expo modules autolinking: añade expo y expo-modules-core al classpath de compilación
+    // (usa el script cargado abajo)
+    if (project.ext.expoModulesAutolinkingApplied) {
+        project.ext.addExpoModulesDependencies(project.dependencies, project)
+    } else {
+        logger.lifecycle("[app/build.gradle] addExpoModulesDependencies no disponible; omitiendo en esta ejecución.")
     }
 }

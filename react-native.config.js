@@ -6,8 +6,7 @@ module.exports = {
     android: {
       sourceDir: './android',
       appName: 'app',
-      packageName: 'com.aguwa.miAppF',
+      packageName: 'com.agustinwaller.myappf',
     },
   },
 };
-

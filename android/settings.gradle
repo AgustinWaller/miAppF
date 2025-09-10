@@ -7,7 +7,8 @@ pluginManagement {
     maven { url("$rootDir/../node_modules/react-native/android") }
   }
 
-  // Incluir el plugin de RN desde node_modules (paquete oficial)
+  // Incluir el plugin de RN desde node_modules (RN 0.76+)
+  // En RN 0.76+ el plugin vive bajo @react-native/gradle-plugin
   includeBuild("../node_modules/@react-native/gradle-plugin")
 }
 
@@ -18,6 +19,23 @@ plugins {
 extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
   ex.autolinkLibrariesFromCommand()
 }
+
+// Expo modules autolinking (necesario para incluir expo-modules)
+// En esta versión, el script de implementación funciona para settings y app
+def expoAutolinkScriptPath = ""
+try {
+  expoAutolinkScriptPath = [
+    "node", "--print",
+    "require.resolve('expo-modules-autolinking/scripts/android/autolinking_implementation.gradle')"
+  ].execute(null, rootDir).text.trim()
+} catch (ignore) {
+}
+if (!expoAutolinkScriptPath) {
+  expoAutolinkScriptPath = new File(rootDir, "../node_modules/expo-modules-autolinking/scripts/android/autolinking_implementation.gradle").getPath()
+}
+def expoAutolinkScriptFile = new File(expoAutolinkScriptPath)
+apply from: expoAutolinkScriptFile
+useExpoModules()
 
 rootProject.name = "miAppF"
 include(":app")

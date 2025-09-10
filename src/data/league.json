@@ -1,26 +1,29 @@
 {
-"divisions": {
-"A": {
-"teams": {
-"Peñarol": {
-"players": [ {"name":"Agustín Canobbio","goals":5}, ... ],
-"news": ["Noticia 1", "Noticia 2"]
-},
-"Nacional": { ... }
-},
-"matches": [
-{
-"id": "pen_nac_2025_09_15",
-"date": "2025-09-15T20:00:00",
-"home": "Peñarol",
-"away": "Nacional",
-"homeGoals": 2,
-"awayGoals": 1,
-"scorersHome": ["Jugador A", "Jugador B"],
-"scorersAway": ["Jugador C"]
-}
-]
-},
-"B": { ... }
-}
+  "divisiones": {
+    "A": {
+      "equipos": [
+        { "id": "pen", "nombre": "Peñarol" },
+        { "id": "nac", "nombre": "Nacional" }
+      ],
+      "jugadores": [
+        { "id": "pen_canobbio", "equipoId": "pen", "nombre": "Agustín Canobbio", "foto": "" },
+        { "id": "nac_jugadorc", "equipoId": "nac", "nombre": "Jugador C", "foto": "" }
+      ],
+      "partidos": [
+        {
+          "id": "pen_nac_2025_09_15",
+          "fechaNumero": 1,
+          "localId": "pen",
+          "visitanteId": "nac",
+          "golesLocal": 2,
+          "golesVisitante": 1,
+          "eventos": [
+            { "tipo": "gol", "jugadorId": "pen_canobbio" },
+            { "tipo": "gol", "jugadorId": "pen_canobbio" },
+            { "tipo": "gol", "jugadorId": "nac_jugadorc" }
+          ]
+        }
+      ]
+    }
+  }
 }

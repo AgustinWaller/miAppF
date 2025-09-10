@@ -1,7 +1,23 @@
-// Learn more https://docs.expo.io/guides/customizing-metro
-const { getDefaultConfig } = require('expo/metro-config');
+// Metro configuration
+// - Prefer @react-native/metro-config (RN 0.73+ recommended)
+// - Fallback to expo/metro-config if not available
 
-/** @type {import('expo/metro-config').MetroConfig} */
-const config = getDefaultConfig(__dirname);
+let getDefaultConfig;
+let mergeConfig;
 
-module.exports = config;
+try {
+  ({ getDefaultConfig, mergeConfig } = require('@react-native/metro-config'));
+} catch (e) {
+  ({ getDefaultConfig, mergeConfig } = require('expo/metro-config'));
+}
+
+const defaultConfig = getDefaultConfig(__dirname);
+
+// Customize here if needed
+const config = {
+  // transformer: {},
+  // resolver: {},
+};
+
+module.exports = mergeConfig(defaultConfig, config);
+

@@ -1,4 +1,4 @@
-package com.aguwa.miAppF
+package com.agustinwaller.myappf
 
 import android.app.Application
 import android.content.res.Configuration

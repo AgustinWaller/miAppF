@@ -1,5 +1,5 @@
 {
-  "cli": { "version": ">= 3.22.0" },
+  "cli": { "version": ">= 3.22.0", "appVersionSource": "remote" },
   "build": {
     "preview": {
       "android": { "buildType": "apk" },
