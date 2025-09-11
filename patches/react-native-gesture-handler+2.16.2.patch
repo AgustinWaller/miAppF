@@ -1,0 +1,9 @@
+diff --git a/node_modules/react-native-gesture-handler/android/src/main/java/com/swmansion/gesturehandler/react/RNGestureHandlerTouchEvent.kt b/node_modules/react-native-gesture-handler/android/src/main/java/com/swmansion/gesturehandler/react/RNGestureHandlerTouchEvent.kt
+index 9e64a45..0000000 100644
+--- a/node_modules/react-native-gesture-handler/android/src/main/java/com/swmansion/gesturehandler/react/RNGestureHandlerTouchEvent.kt
++++ b/node_modules/react-native-gesture-handler/android/src/main/java/com/swmansion/gesturehandler/react/RNGestureHandlerTouchEvent.kt
+@@
+-    val view = handler.view!!
+-    super.init(UIManagerHelper.getSurfaceId(view), view.id)
++    val view = handler.view
++    super.init(UIManagerHelper.getSurfaceId(view!!), view!!.id)
