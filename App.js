@@ -1,74 +1,79 @@
-import 'react-native-gesture-handler';
-import React from 'react';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { NavigationContainer } from '@react-navigation/native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { enableScreens } from 'react-native-screens';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { StatusBar } from 'expo-status-bar';
+import "react-native-gesture-handler";
+import React from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { createDrawerNavigator } from "@react-navigation/drawer";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { StatusBar } from "expo-status-bar";
 
-import HomeScreen from './src/screens/HomeScreen';
-import MatchesScreen from './src/screens/MatchesScreen';
-import StandingsScreen from './src/screens/StandingsScreen';
-import TeamsScreen from './src/screens/TeamsScreen';
-import TopPlayersScreen from './src/screens/TopPlayersScreen';
-import BestPlayerScreen from './src/screens/BestPlayerScreen';
-import TeamDetailScreen from './src/screens/TeamDetailScreen';
-import ScoreScreen from './src/screens/ScoreScreen';
+import NewsScreen from "./src/screens/NewsScreen";
+import MatchesScreen from "./src/screens/MatchesScreen";
+import StandingsScreen from "./src/screens/StandingsScreen";
+import TopPlayersScreen from "./src/screens/TopPlayersScreen";
+import BestPlayerScreen from "./src/screens/BestPlayerScreen";
+import TeamsScreen from "./src/screens/TeamsScreen";
+import TeamDetailScreen from "./src/screens/TeamDetailScreen";
+import ScoreScreen from "./src/screens/ScoreScreen";
+import { APP_COLORS } from "./src/theme/colors";
 
-enableScreens(true);
-
-const Tab = createBottomTabNavigator();
+const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
 
-function Tabs() {
-return (
-<Tab.Navigator initialRouteName="Inicio" screenOptions={{ headerShown: false }}>
-<Tab.Screen
-name="Inicio"
-component={HomeScreen}
-options={{ tabBarIcon: ({ focused }) => (<MaterialCommunityIcons name={focused ? 'home' : 'home-outline'} size={22} />) }}
-/>
-<Tab.Screen
-name="Partidos"
-component={MatchesScreen}
-options={{ tabBarIcon: ({ focused }) => (<MaterialCommunityIcons name={focused ? 'calendar' : 'calendar-outline'} size={22} />) }}
-/>
-<Tab.Screen
-name="Tabla"
-component={StandingsScreen}
-options={{ tabBarIcon: ({ focused }) => (<MaterialCommunityIcons name={focused ? 'table' : 'table-large'} size={22} />) }}
-/>
-<Tab.Screen
-name="Equipos"
-component={TeamsScreen}
-options={{ tabBarIcon: ({ focused }) => (<MaterialCommunityIcons name={focused ? 'account-group' : 'account-group-outline'} size={22} />) }}
-/>
-<Tab.Screen
-name="Top"
-component={TopPlayersScreen}
-options={{ tabBarIcon: ({ focused }) => (<MaterialCommunityIcons name={focused ? 'star' : 'star-outline'} size={22} />) }}
-/>
-</Tab.Navigator>
-);
+const navTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: APP_COLORS.fondo,
+    primary: APP_COLORS.campo,
+    card: "#E8F5E9",
+    text: APP_COLORS.texto,
+    border: APP_COLORS.campo,
+  },
+};
+
+function MainDrawer() {
+  return (
+    <Drawer.Navigator
+      initialRouteName="Noticias"
+      screenOptions={{
+        headerStyle: { backgroundColor: APP_COLORS.campo },
+        headerTintColor: APP_COLORS.blanco,
+        headerTitleAlign: "center",
+        drawerActiveTintColor: APP_COLORS.campo,
+        drawerInactiveTintColor: APP_COLORS.texto,
+        drawerStyle: { backgroundColor: "#E3F2FD" },
+        drawerLabelStyle: { fontWeight: "600" },
+      }}
+    >
+      <Drawer.Screen name="Noticias" component={NewsScreen} initialParams={{ division: "A" }} />
+      <Drawer.Screen name="Partidos" component={MatchesScreen} initialParams={{ division: "A" }} />
+      <Drawer.Screen name="Tabla de posiciones" component={StandingsScreen} initialParams={{ division: "A" }} />
+      <Drawer.Screen name="Goleadores" component={TopPlayersScreen} initialParams={{ division: "A" }} />
+      <Drawer.Screen name="Jugador de la fecha" component={BestPlayerScreen} initialParams={{ division: "A" }} />
+      <Drawer.Screen name="Equipos" component={TeamsScreen} initialParams={{ division: "A" }} />
+    </Drawer.Navigator>
+  );
 }
 
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <NavigationContainer>
-          <Stack.Navigator>
-            <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
-            <Stack.Screen name="VotarFecha" component={BestPlayerScreen} options={{ title: 'Mejor jugador de la fecha' }} />
-            <Stack.Screen name="TeamDetail" component={TeamDetailScreen} options={{ title: 'Equipo' }} />
-            <Stack.Screen name="ScoreDetail" component={ScoreScreen} options={{ title: 'Resultado' }} />
+        <NavigationContainer theme={navTheme}>
+          <Stack.Navigator
+            screenOptions={{
+              headerStyle: { backgroundColor: APP_COLORS.campo },
+              headerTintColor: APP_COLORS.blanco,
+            }}
+          >
+            <Stack.Screen name="Main" component={MainDrawer} options={{ headerShown: false }} />
+            <Stack.Screen name="TeamDetail" component={TeamDetailScreen} options={{ title: "Equipo" }} />
+            <Stack.Screen name="ScoreDetail" component={ScoreScreen} options={{ title: "Resultado" }} />
           </Stack.Navigator>
         </NavigationContainer>
       </SafeAreaProvider>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
     </GestureHandlerRootView>
   );
 }

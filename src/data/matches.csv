@@ -1,0 +1,13 @@
+division;match_id;date_iso;fecha_numero;local_id;visitante_id;goles_local;goles_visitante;eventos
+A;pen_nac_f1;2025-09-15;1;pen;nac;2;1;[{"tipo":"gol","jugadorId":"pen_canobbio"},{"tipo":"gol","jugadorId":"pen_torres"},{"tipo":"gol","jugadorId":"nac_suarez"}]
+A;dan_def_f1;2025-09-16;1;dan;def;1;1;[{"tipo":"gol","jugadorId":"dan_sosa"},{"tipo":"gol","jugadorId":"def_silva"}]
+A;nac_dan_f2;2025-09-22;2;nac;dan;3;0;[{"tipo":"gol","jugadorId":"nac_suarez"},{"tipo":"gol","jugadorId":"nac_ramirez"},{"tipo":"gol","jugadorId":"nac_suarez"}]
+A;def_pen_f2;2025-09-23;2;def;pen;2;2;[{"tipo":"gol","jugadorId":"def_perez"},{"tipo":"gol","jugadorId":"def_mendez"},{"tipo":"gol","jugadorId":"pen_canobbio"},{"tipo":"gol","jugadorId":"pen_viatri"}]
+A;pen_dan_f3;2025-09-29;3;pen;dan;1;0;[{"tipo":"gol","jugadorId":"pen_viatri"}]
+A;def_nac_f3;2025-09-30;3;def;nac;1;2;[{"tipo":"gol","jugadorId":"def_cabrera"},{"tipo":"gol","jugadorId":"nac_suarez"},{"tipo":"gol","jugadorId":"nac_olivera"}]
+B;bri_alp_f1;2025-09-18;1;bri;alp;1;0;[{"tipo":"gol","jugadorId":"bri_morales"}]
+B;col_bel_f1;2025-09-19;1;col;bel;2;2;[{"tipo":"gol","jugadorId":"col_rodriguez"},{"tipo":"gol","jugadorId":"col_lopez"},{"tipo":"gol","jugadorId":"bel_diaz"},{"tipo":"gol","jugadorId":"bel_ramos"}]
+B;alp_col_f2;2025-09-25;2;alp;col;1;2;[{"tipo":"gol","jugadorId":"alp_silva"},{"tipo":"gol","jugadorId":"col_lopez"},{"tipo":"gol","jugadorId":"col_rodriguez"}]
+B;bel_bri_f2;2025-09-26;2;bel;bri;0;1;[{"tipo":"gol","jugadorId":"bri_gomez"}]
+B;bri_col_f3;2025-09-29;3;bri;col;2;2;[{"tipo":"gol","jugadorId":"bri_morales"},{"tipo":"gol","jugadorId":"bri_fernandez"},{"tipo":"gol","jugadorId":"col_lopez"},{"tipo":"gol","jugadorId":"col_rodriguez"}]
+B;alp_bel_f3;2025-09-30;3;alp;bel;1;1;[{"tipo":"gol","jugadorId":"alp_cardozo"},{"tipo":"gol","jugadorId":"bel_diaz"}]

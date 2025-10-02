@@ -9,6 +9,9 @@ try {
   ({ getDefaultConfig } = require('expo/metro-config'));
 }
 
-// For our use case we don't need mergeConfig; return default config directly.
 const config = getDefaultConfig(__dirname);
+
+// Ensure CSV files can be bundled as static assets
+config.resolver.assetExts = [...config.resolver.assetExts, 'csv'];
+
 module.exports = config;

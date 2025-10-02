@@ -1,116 +1,196 @@
-﻿import React, { useMemo, useState } from "react";
-import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
-import { getDivisionData, getUltimaFechaNumero, partidosPorFecha, nombreEquipo } from "../utils/storage";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  getDivisionData,
+  getUltimaFechaNumero,
+  partidosPorFecha,
+  nombreEquipo,
+  getJugador,
+} from "../utils/storage";
+import { APP_COLORS } from "../theme/colors";
 
-export default function MatchesScreen({ division }) {
-  const divKey = division || "A";
-  const ultimaFecha = getUltimaFechaNumero(divKey);
-  const [fechaSel, setFechaSel] = useState(ultimaFecha);
-  const [comentario, setComentario] = useState("");
-  const [selectedMatchId, setSelectedMatchId] = useState(null);
+const DIVISIONES = ["A", "B"];
 
-  const partidos = useMemo(() => partidosPorFecha(divKey, fechaSel), [divKey, fechaSel]);
-  const divData = getDivisionData(divKey) || { partidos: [] };
+export default function MatchesScreen({ route, navigation }) {
+  const routeDivision = route?.params?.division ?? "A";
+  const [division, setDivision] = useState(routeDivision);
+  const [fechaSel, setFechaSel] = useState(() => getUltimaFechaNumero(routeDivision) || 1);
 
-  const agregarComentario = (matchId) => {
-    if (!comentario.trim()) return;
-    if (comentario.length > 500) {
-      Alert.alert("Máximo 500 caracteres");
-      return;
+  useEffect(() => {
+    if (routeDivision !== division) {
+      setDivision(routeDivision);
     }
-    const match = (divData.partidos || []).find(p => p.id === matchId);
-    if (!match) return;
-    match.comentarios = match.comentarios || [];
-    match.comentarios.push({ usuario: "demoUser", texto: comentario.trim(), timestamp: new Date().toISOString() });
-    setComentario("");
-    setSelectedMatchId(null);
-    Alert.alert("Comentario agregado");
+  }, [routeDivision]);
+
+  useEffect(() => {
+    navigation?.setParams?.({ division });
+  }, [division, navigation]);
+
+  const divisionData = useMemo(() => getDivisionData(division) || { partidos: [] }, [division]);
+
+  const fechas = useMemo(() => {
+    const lista = [...new Set((divisionData.partidos || []).map((match) => match.fechaNumero))]
+      .filter((num) => typeof num === "number" && !Number.isNaN(num))
+      .sort((a, b) => a - b);
+    return lista;
+  }, [divisionData]);
+
+  useEffect(() => {
+    if (fechas.length === 0) return;
+    if (!fechas.includes(fechaSel)) {
+      setFechaSel(fechas[fechas.length - 1]);
+    }
+  }, [fechas, fechaSel]);
+
+  const partidos = useMemo(() => partidosPorFecha(division, fechaSel), [division, fechaSel]);
+
+  const goHome = () => navigation.navigate("Noticias", { division });
+
+  const getScorers = (match, teamId) => {
+    return (match.eventos || [])
+      .filter((evt) => evt.tipo === "gol")
+      .map((evt) => ({ evt, player: getJugador(division, evt.jugadorId) }))
+      .filter((data) => data.player && data.player.equipoId === teamId)
+      .map((data) => data.player.nombre);
   };
 
-  const fechas = [...new Set((divData.partidos || []).map(p => p.fechaNumero))].sort((a,b)=>a-b);
+  const renderMatch = ({ item }) => {
+    const localName = nombreEquipo(division, item.localId);
+    const visitaName = nombreEquipo(division, item.visitanteId);
+    const localGoals = getScorers(item, item.localId);
+    const visitaGoals = getScorers(item, item.visitanteId);
+
+    return (
+      <View style={styles.matchCard}>
+        <View style={styles.scoreRow}>
+          <Text style={styles.teamName}>{localName}</Text>
+          <View style={styles.scoreBox}>
+            <Text style={styles.scoreText}>{item.golesLocal}</Text>
+            <Text style={styles.scoreDivider}>-</Text>
+            <Text style={styles.scoreText}>{item.golesVisitante}</Text>
+          </View>
+          <Text style={styles.teamName}>{visitaName}</Text>
+        </View>
+        {item.fechaCalendario ? (
+          <Text style={styles.dateText}>Jugado el {item.fechaCalendario}</Text>
+        ) : null}
+
+        <View style={styles.goalsSection}>
+          <Text style={styles.goalsTitle}>Goles {localName}</Text>
+          {localGoals.length === 0 ? (
+            <Text style={styles.goalLine}>Sin goles</Text>
+          ) : (
+            localGoals.map((nombre, index) => (
+              <Text key={`${item.id}-loc-${index}`} style={styles.goalLine}>
+                � {nombre}
+              </Text>
+            ))
+          )}
+        </View>
+
+        <View style={styles.goalsSection}>
+          <Text style={styles.goalsTitle}>Goles {visitaName}</Text>
+          {visitaGoals.length === 0 ? (
+            <Text style={styles.goalLine}>Sin goles</Text>
+          ) : (
+            visitaGoals.map((nombre, index) => (
+              <Text key={`${item.id}-vis-${index}`} style={styles.goalLine}>
+                � {nombre}
+              </Text>
+            ))
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={styles.detailBtn}
+          onPress={() => navigation.navigate("ScoreDetail", { division, match: item })}
+        >
+          <Text style={styles.detailText}>Ver detalle</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Partidos — Divisional {divKey}</Text>
+      <View style={styles.actions}>
+        <TouchableOpacity style={styles.actionBtn} onPress={goHome}>
+          <Text style={styles.actionText}>Inicio</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.openDrawer()}>
+          <Text style={styles.actionText}>Menu</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.title}>Partidos - Division {division}</Text>
+
+      <View style={styles.divisionRow}>
+        {DIVISIONES.map((key) => (
+          <TouchableOpacity
+            key={key}
+            onPress={() => setDivision(key)}
+            style={[styles.divBtn, division === key && styles.divBtnActive]}
+          >
+            <Text style={[styles.divText, division === key && styles.divTextActive]}>{key}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {fechas.length === 0 ? (
-        <Text>No hay datos para esta división.</Text>
+        <Text style={styles.empty}>No hay datos para esta division.</Text>
       ) : (
-        <View style={styles.filtro}>
-          <Text style={{ marginRight:8 }}>Fecha:</Text>
-          {fechas.map(n => (
-            <TouchableOpacity key={n} onPress={() => setFechaSel(n)} style={[styles.btnFecha, fechaSel===n && styles.btnFechaActiva]}>
-              <Text style={{ color: fechaSel===n ? "#fff" : "#000" }}>{n}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <>
+          <View style={styles.fechasRow}>
+            {fechas.map((num) => (
+              <TouchableOpacity
+                key={num}
+                onPress={() => setFechaSel(num)}
+                style={[styles.fechaBtn, fechaSel === num && styles.fechaBtnActive]}
+              >
+                <Text style={[styles.fechaText, fechaSel === num && styles.fechaTextActive]}>Fecha {num}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <FlatList
+            data={partidos}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMatch}
+            contentContainerStyle={{ paddingBottom: 24, gap: 16 }}
+          />
+        </>
       )}
-
-      <FlatList
-        data={partidos}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => {
-          const local = nombreEquipo(divKey, item.localId);
-          const visi = nombreEquipo(divKey, item.visitanteId);
-          return (
-            <View style={styles.matchCard}>
-              <Text style={styles.matchLine}>
-                {local} {item.golesLocal} - {item.golesVisitante} {visi}
-              </Text>
-              {item.fechaCalendario ? (
-                <Text style={styles.dateLine}>Jugado el {item.fechaCalendario}</Text>
-              ) : null}
-
-              <Text style={styles.commentsTitle}>Comentarios</Text>
-              {(item.comentarios || []).map((c, idx) => (
-                <Text key={idx} style={styles.commentItem}>• {c.usuario}: {c.texto}</Text>
-              ))}
-
-              {selectedMatchId === item.id ? (
-                <View style={{ marginTop:8 }}>
-                  <TextInput
-                    value={comentario}
-                    onChangeText={setComentario}
-                    placeholder="Escribe tu comentario (máx 500)"
-                    style={styles.input}
-                    multiline
-                    maxLength={500}
-                  />
-                  <View style={{ flexDirection:"row", gap:8, marginTop:6 }}>
-                    <TouchableOpacity style={styles.btnPrimary} onPress={() => agregarComentario(item.id)}>
-                      <Text style={styles.btnText}>Agregar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.btnSecondary} onPress={() => { setComentario(""); setSelectedMatchId(null); }}>
-                      <Text>Cancelar</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <TouchableOpacity style={[styles.btnPrimary, { marginTop:8 }]} onPress={() => setSelectedMatchId(item.id)}>
-                  <Text style={styles.btnText}>Comentar</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          );
-        }}
-      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container:{ flex:1, padding:16 },
-  title:{ fontSize:20, fontWeight:"bold", marginBottom:12 },
-  filtro:{ flexDirection:"row", alignItems:"center", flexWrap:"wrap", gap:6, marginBottom:12 },
-  btnFecha:{ borderWidth:1, borderRadius:8, paddingHorizontal:10, paddingVertical:6 },
-  btnFechaActiva:{ backgroundColor:"#1e1e1e", borderColor:"#1e1e1e" },
-  matchCard:{ borderWidth:1, borderRadius:12, padding:12, marginBottom:12 },
-  matchLine:{ fontSize:16, fontWeight:"600" },
-  dateLine:{ color:"#666", marginTop:2 },
-  commentsTitle:{ marginTop:8, fontWeight:"700" },
-  commentItem:{ marginTop:2 },
-  input:{ borderWidth:1, borderRadius:10, padding:10, minHeight:60, textAlignVertical:"top" },
-  btnPrimary:{ backgroundColor:"#1e1e1e", padding:10, borderRadius:10 },
-  btnSecondary:{ borderWidth:1, borderRadius:10, padding:10 },
-  btnText:{ color:"#fff", fontWeight:"600", textAlign:"center" }
+  container: { flex: 1, padding: 16, backgroundColor: APP_COLORS.fondo },
+  actions: { flexDirection: "row", justifyContent: "flex-end", gap: 12, marginBottom: 12 },
+  actionBtn: { backgroundColor: APP_COLORS.campo, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
+  actionText: { color: APP_COLORS.blanco, fontWeight: "700" },
+  title: { fontSize: 20, fontWeight: "bold", marginBottom: 12, color: APP_COLORS.texto, textAlign: "center" },
+  divisionRow: { flexDirection: "row", gap: 12, marginBottom: 12, justifyContent: "center" },
+  divBtn: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, borderColor: APP_COLORS.campo, backgroundColor: APP_COLORS.blanco },
+  divBtnActive: { backgroundColor: APP_COLORS.campo },
+  divText: { color: APP_COLORS.texto, fontWeight: "700" },
+  divTextActive: { color: APP_COLORS.blanco },
+  fechasRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 16, justifyContent: "center" },
+  fechaBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: APP_COLORS.cielo, backgroundColor: APP_COLORS.blanco },
+  fechaBtnActive: { backgroundColor: APP_COLORS.campo, borderColor: APP_COLORS.campo },
+  fechaText: { color: APP_COLORS.texto, fontWeight: "700" },
+  fechaTextActive: { color: APP_COLORS.blanco },
+  matchCard: { backgroundColor: APP_COLORS.blanco, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: APP_COLORS.campo, gap: 12 },
+  scoreRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  teamName: { flex: 1, fontWeight: "700", color: APP_COLORS.texto },
+  scoreBox: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 6, borderRadius: 16, backgroundColor: APP_COLORS.cielo },
+  scoreText: { fontSize: 18, fontWeight: "800", color: APP_COLORS.texto },
+  scoreDivider: { fontSize: 18, fontWeight: "800", color: APP_COLORS.texto },
+  dateText: { color: APP_COLORS.campo, fontWeight: "600" },
+  goalsSection: { backgroundColor: "#E3F2FD", borderRadius: 16, padding: 12 },
+  goalsTitle: { fontWeight: "700", marginBottom: 6, color: APP_COLORS.texto },
+  goalLine: { color: APP_COLORS.texto },
+  detailBtn: { alignSelf: "flex-end", backgroundColor: APP_COLORS.campo, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  detailText: { color: APP_COLORS.blanco, fontWeight: "700" },
+  empty: { textAlign: "center", color: APP_COLORS.texto, marginTop: 24 },
 });
