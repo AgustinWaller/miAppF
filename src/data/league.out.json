@@ -1,0 +1,30 @@
+{
+  "divisiones": {
+    "A": {
+      "equipos": [
+        { "id": "pen", "nombre": "Peñarol" },
+        { "id": "nac", "nombre": "Nacional" }
+      ],
+      "jugadores": [
+        { "id": "pen_canobbio", "equipoId": "pen", "nombre": "Agustín Canobbio", "foto": "" },
+        { "id": "nac_jugadorc", "equipoId": "nac", "nombre": "Jugador C", "foto": "" }
+      ],
+      "partidos": [
+        {
+          "id": "pen_nac_2025_09_15",
+          "fechaNumero": 1,
+          "localId": "pen",
+          "visitanteId": "nac",
+          "golesLocal": 2,
+          "golesVisitante": 1,
+          "eventos": [
+            { "tipo": "gol", "jugadorId": "pen_canobbio" },
+            { "tipo": "gol", "jugadorId": "pen_canobbio" },
+            { "tipo": "gol", "jugadorId": "nac_jugadorc" }
+          ]
+        }
+      ]
+    }
+  }
+}
+

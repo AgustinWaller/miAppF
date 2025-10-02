@@ -4,18 +4,16 @@ import league from "../data/league.json";
 
 // Devuelve objeto de la división seleccionada
 
-export const getDivisionData = (divisionKey) => league.divisiones[divisionKey];
+export const getDivisionData = (divisionKey) => league?.divisiones?.[divisionKey];
 
 
 
 // Última fecha disputada (por número mayor presente en partidos)
 
 export const getUltimaFechaNumero = (divisionKey) => {
-
-  const partidos = getDivisionData(divisionKey).partidos;
-
-  return partidos.reduce((max, p) => Math.max(max, p.fechaNumero), 0);
-
+  const div = getDivisionData(divisionKey) || getDivisionData('A') || { partidos: [] };
+  const partidos = Array.isArray(div.partidos) ? div.partidos : [];
+  return partidos.reduce((max, p) => Math.max(max, p.fechaNumero || 0), 0);
 };
 
 
@@ -24,7 +22,7 @@ export const getUltimaFechaNumero = (divisionKey) => {
 
 export const calcularTabla = (divisionKey) => {
 
-  const div = getDivisionData(divisionKey);
+  const div = getDivisionData(divisionKey) || getDivisionData('A') || { equipos: [], partidos: [] };
 
   const equipos = div.equipos.map(e => ({ ...e }));
 
@@ -46,7 +44,7 @@ export const calcularTabla = (divisionKey) => {
 
 
 
-  div.partidos.forEach(p => {
+  (div.partidos || []).forEach(p => {
 
     const local = tabla[p.localId];
 
@@ -112,15 +110,15 @@ export const calcularTabla = (divisionKey) => {
 
 export const calcularGoleadores = (divisionKey) => {
 
-  const div = getDivisionData(divisionKey);
+  const div = getDivisionData(divisionKey) || getDivisionData('A') || { jugadores: [], partidos: [], equipos: [] };
 
   const golesPorJugador = {};
 
-  div.jugadores.forEach(j => golesPorJugador[j.id] = { jugadorId: j.id, goles: 0 });
+  (div.jugadores || []).forEach(j => (golesPorJugador[j.id] = { jugadorId: j.id, goles: 0 }));
 
 
 
-  div.partidos.forEach(p => {
+  (div.partidos || []).forEach(p => {
 
     p.eventos.forEach(ev => {
 
@@ -160,9 +158,9 @@ export const calcularGoleadores = (divisionKey) => {
 
 export const jugadoresPorEquipo = (divisionKey, equipoId) => {
 
-  const div = getDivisionData(divisionKey);
+  const div = getDivisionData(divisionKey) || getDivisionData('A') || { jugadores: [] };
 
-  return div.jugadores.filter(j => j.equipoId === equipoId);
+  return (div.jugadores || []).filter(j => j.equipoId === equipoId);
 
 };
 
@@ -172,9 +170,9 @@ export const jugadoresPorEquipo = (divisionKey, equipoId) => {
 
 export const partidosPorFecha = (divisionKey, fechaNumero) => {
 
-  const div = getDivisionData(divisionKey);
+  const div = getDivisionData(divisionKey) || getDivisionData('A') || { partidos: [] };
 
-  return div.partidos.filter(p => p.fechaNumero === fechaNumero);
+  return (div.partidos || []).filter(p => p.fechaNumero === fechaNumero);
 
 };
 
@@ -184,7 +182,7 @@ export const partidosPorFecha = (divisionKey, fechaNumero) => {
 
 export const nombreEquipo = (divisionKey, equipoId) => {
 
-  const div = getDivisionData(divisionKey);
+  const div = getDivisionData(divisionKey) || getDivisionData('A') || { equipos: [] };
 
   return div.equipos.find(e => e.id === equipoId)?.nombre || "";
 

@@ -1,13 +1,15 @@
-import React from "react";
+﻿import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { getUltimaFechaNumero } from "../utils/storage";
 
-export default function HomeScreen({ division, setDivision, navigation }) {
+export default function HomeScreen({ route, navigation }) {
+  const initialDivision = route?.params?.division ?? "A";
+  const [division, setDivision] = React.useState(initialDivision);
   const ultima = getUltimaFechaNumero(division);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Liga Local — Divisional {division}</Text>
+      <Text style={styles.title}>Liga Local - Divisional {division}</Text>
 
       <View style={styles.row}>
         <TouchableOpacity
@@ -24,7 +26,7 @@ export default function HomeScreen({ division, setDivision, navigation }) {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.info}>Última fecha disputada: {ultima}</Text>
+      <Text style={styles.info}>Ultima fecha disputada: {ultima}</Text>
 
       <View style={styles.links}>
         <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate("Partidos")}>

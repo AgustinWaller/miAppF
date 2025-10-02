@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
 import { calcularTabla } from "../utils/storage";
 
@@ -7,12 +7,10 @@ export default function StandingsScreen({ division }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tabla — Divisional {division}</Text>
-      <View style={styles.headerRow}>
-        {["Equipo","PJ","G","E","P","GF","GC","DG","PTS"].map(h => (
-          <Text key={h} style={[styles.cell, styles.header]}>{h}</Text>
-        ))}
-      </View>
+      <Text style={styles.title}>Tabla â€” Divisional {division}</Text>
+      {(!Array.isArray(tabla) || tabla.length===0) && (
+        <Text style={{marginVertical:8}}>No hay datos para esta división.</Text>
+      )}
       <FlatList
         data={tabla}
         keyExtractor={(item) => item.equipoId}
@@ -44,3 +42,4 @@ const styles = StyleSheet.create({
   equipo:{ flex:1, textAlign:"left" },
   pts:{ fontWeight:"bold" }
 });
+

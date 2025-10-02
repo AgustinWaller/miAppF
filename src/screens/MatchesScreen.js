@@ -1,16 +1,16 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
-import league from "../data/league.json";
 import { getDivisionData, getUltimaFechaNumero, partidosPorFecha, nombreEquipo } from "../utils/storage";
 
 export default function MatchesScreen({ division }) {
-  const ultimaFecha = getUltimaFechaNumero(division);
+  const divKey = division || "A";
+  const ultimaFecha = getUltimaFechaNumero(divKey);
   const [fechaSel, setFechaSel] = useState(ultimaFecha);
-  const [comentario, setComentario] = useState(""); // texto nuevo
+  const [comentario, setComentario] = useState("");
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
-  const partidos = useMemo(() => partidosPorFecha(division, fechaSel), [division, fechaSel]);
-  const divData = getDivisionData(division);
+  const partidos = useMemo(() => partidosPorFecha(divKey, fechaSel), [divKey, fechaSel]);
+  const divData = getDivisionData(divKey) || { partidos: [] };
 
   const agregarComentario = (matchId) => {
     if (!comentario.trim()) return;
@@ -18,44 +18,48 @@ export default function MatchesScreen({ division }) {
       Alert.alert("Máximo 500 caracteres");
       return;
     }
-    // Demo: mutamos en memoria (en app real, guardarías en backend/AsyncStorage)
-    const match = divData.partidos.find(p => p.id === matchId);
+    const match = (divData.partidos || []).find(p => p.id === matchId);
+    if (!match) return;
     match.comentarios = match.comentarios || [];
-    match.comentarios.push({
-      usuario: "demoUser",
-      texto: comentario.trim(),
-      timestamp: new Date().toISOString()
-    });
+    match.comentarios.push({ usuario: "demoUser", texto: comentario.trim(), timestamp: new Date().toISOString() });
     setComentario("");
     setSelectedMatchId(null);
     Alert.alert("Comentario agregado");
   };
 
+  const fechas = [...new Set((divData.partidos || []).map(p => p.fechaNumero))].sort((a,b)=>a-b);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Partidos — Divisional {division}</Text>
+      <Text style={styles.title}>Partidos — Divisional {divKey}</Text>
 
-      <View style={styles.filtro}>
-        <Text style={{ marginRight:8 }}>Fecha:</Text>
-        {[...new Set(divData.partidos.map(p => p.fechaNumero))].sort((a,b)=>a-b).map(n => (
-          <TouchableOpacity key={n} onPress={() => setFechaSel(n)} style={[styles.btnFecha, fechaSel===n && styles.btnFechaActiva]}>
-            <Text style={{ color: fechaSel===n ? "#fff" : "#000" }}>{n}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {fechas.length === 0 ? (
+        <Text>No hay datos para esta división.</Text>
+      ) : (
+        <View style={styles.filtro}>
+          <Text style={{ marginRight:8 }}>Fecha:</Text>
+          {fechas.map(n => (
+            <TouchableOpacity key={n} onPress={() => setFechaSel(n)} style={[styles.btnFecha, fechaSel===n && styles.btnFechaActiva]}>
+              <Text style={{ color: fechaSel===n ? "#fff" : "#000" }}>{n}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       <FlatList
         data={partidos}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
-          const local = nombreEquipo(division, item.localId);
-          const visi = nombreEquipo(division, item.visitanteId);
+          const local = nombreEquipo(divKey, item.localId);
+          const visi = nombreEquipo(divKey, item.visitanteId);
           return (
             <View style={styles.matchCard}>
               <Text style={styles.matchLine}>
                 {local} {item.golesLocal} - {item.golesVisitante} {visi}
               </Text>
-              <Text style={styles.dateLine}>Jugado el {item.fechaCalendario}</Text>
+              {item.fechaCalendario ? (
+                <Text style={styles.dateLine}>Jugado el {item.fechaCalendario}</Text>
+              ) : null}
 
               <Text style={styles.commentsTitle}>Comentarios</Text>
               {(item.comentarios || []).map((c, idx) => (

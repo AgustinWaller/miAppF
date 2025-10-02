@@ -2,6 +2,8 @@ import 'react-native-gesture-handler';
 import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { enableScreens } from 'react-native-screens';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -15,6 +17,8 @@ import TopPlayersScreen from './src/screens/TopPlayersScreen';
 import BestPlayerScreen from './src/screens/BestPlayerScreen';
 import TeamDetailScreen from './src/screens/TeamDetailScreen';
 import ScoreScreen from './src/screens/ScoreScreen';
+
+enableScreens(true);
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -54,14 +58,16 @@ options={{ tabBarIcon: ({ focused }) => (<MaterialCommunityIcons name={focused ?
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
-        <Stack.Navigator>
-          <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
-          <Stack.Screen name="VotarFecha" component={BestPlayerScreen} options={{ title: 'Mejor jugador de la fecha' }} />
-          <Stack.Screen name="TeamDetail" component={TeamDetailScreen} options={{ title: 'Equipo' }} />
-          <Stack.Screen name="ScoreDetail" component={ScoreScreen} options={{ title: 'Resultado' }} />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <Stack.Navigator>
+            <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
+            <Stack.Screen name="VotarFecha" component={BestPlayerScreen} options={{ title: 'Mejor jugador de la fecha' }} />
+            <Stack.Screen name="TeamDetail" component={TeamDetailScreen} options={{ title: 'Equipo' }} />
+            <Stack.Screen name="ScoreDetail" component={ScoreScreen} options={{ title: 'Resultado' }} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SafeAreaProvider>
       <StatusBar style="auto" />
     </GestureHandlerRootView>
   );
