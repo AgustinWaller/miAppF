@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Alert } from "react-native";
+import { ScrollView, View, Text, StyleSheet, Image, TouchableOpacity, Alert } from "react-native";
 import {
   getDivisionData,
   jugadoresPorEquipo,
@@ -7,12 +7,14 @@ import {
   getJugador,
 } from "../utils/storage";
 import { APP_COLORS } from "../theme/colors";
+import { getPlayerPhoto } from "../assets/images";
 
 const DEMO_USER_ID = "demoUser";
 
 export default function BestPlayerScreen({ route, navigation }) {
   const routeDivision = route?.params?.division ?? "A";
   const [division, setDivision] = useState(routeDivision);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (routeDivision !== division) {
@@ -60,14 +62,13 @@ export default function BestPlayerScreen({ route, navigation }) {
           jugadorId,
           votos,
           nombre: jugador.nombre,
-          foto: jugador.foto,
           equipo: team?.nombre || "",
         };
       })
       .filter(Boolean)
       .sort((a, b) => b.votos - a.votos || a.nombre.localeCompare(b.nombre))
       .slice(0, 5);
-  }, [votacion, divData, division]);
+  }, [votacion, divData, division, refreshKey]);
 
   const rankingAnual = useMemo(() => {
     const mapa = calcularGanadoresVotaciones(division);
@@ -81,18 +82,17 @@ export default function BestPlayerScreen({ route, navigation }) {
           puntos,
           nombre: jugador.nombre,
           equipo: team?.nombre || "",
-          foto: jugador.foto,
         };
       })
       .filter(Boolean)
       .sort((a, b) => b.puntos - a.puntos || a.nombre.localeCompare(b.nombre))
       .slice(0, 5);
-  }, [division, divData]);
+  }, [division, divData, refreshKey]);
 
   const yaVoto = useMemo(() => {
     if (!votacion) return false;
     return (votacion.votos || []).some((v) => v.usuarioId === DEMO_USER_ID);
-  }, [votacion]);
+  }, [votacion, refreshKey]);
 
   const estaAbierta = useMemo(() => {
     if (!votacion) return false;
@@ -114,14 +114,51 @@ export default function BestPlayerScreen({ route, navigation }) {
       Alert.alert("Solo podes votar una vez por fecha.");
       return;
     }
-    votacion.votos.push({ usuarioId: DEMO_USER_ID, jugadorId });
+    const nuevosVotos = [...(votacion.votos || []), { usuarioId: DEMO_USER_ID, jugadorId }];
+    divData.votaciones[keyVotacion] = { ...votacion, votos: nuevosVotos };
+    setRefreshKey((value) => value + 1);
     Alert.alert("Voto registrado");
   };
 
   const goHome = () => navigation.navigate("Noticias", { division });
 
+  const renderPlayerRow = (player) => {
+    const photo = getPlayerPhoto(player.id);
+    return (
+      <View key={player.id} style={styles.playerRow}>
+        <Image source={photo} style={styles.avatar} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.name}>{player.nombre}</Text>
+          <Text style={styles.teamSmall}>Goles en el torneo: {player.goles ?? 0}</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.voteBtn, (!estaAbierta || yaVoto) && { opacity: 0.5 }]}
+          onPress={() => votar(player.id)}
+          disabled={!estaAbierta || yaVoto}
+        >
+          <Text style={styles.voteText}>{yaVoto ? "Votaste" : "Votar"}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderRankingRow = (item, index, label) => {
+    const photo = getPlayerPhoto(item.jugadorId);
+    return (
+      <View key={`${label}-${item.jugadorId}`} style={styles.rankingRow}>
+        <Text style={styles.pos}>{index + 1}</Text>
+        <Image source={photo} style={styles.avatarSmall} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.name}>{item.nombre}</Text>
+          <Text style={styles.teamSmall}>{item.equipo}</Text>
+        </View>
+        <Text style={styles.votes}>{label === "fecha" ? item.votos : item.puntos}</Text>
+      </View>
+    );
+  };
+
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionBtn} onPress={goHome}>
           <Text style={styles.actionText}>Inicio</Text>
@@ -164,12 +201,10 @@ export default function BestPlayerScreen({ route, navigation }) {
       {!votacion && <Text style={styles.warning}>No hay votacion configurada.</Text>}
 
       {votacion && (
-        <>
+        <View style={styles.card}>
           <Text style={styles.periodo}>
-            {estaAbierta ? "Votacion abierta" : "Votacion cerrada"} -
-            Abre: {new Date(votacion.abre).toLocaleString()} -
-            Cierra: {new Date(votacion.cierra).toLocaleString()} -
-            Ventana: lunes a sabado
+            {estaAbierta ? "Votacion abierta" : "Votacion cerrada"} - Abre: {new Date(votacion.abre).toLocaleString()} -
+            Cierra: {new Date(votacion.cierra).toLocaleString()} - Ventana: lunes a sabado
           </Text>
 
           <View style={styles.teamRow}>
@@ -185,108 +220,98 @@ export default function BestPlayerScreen({ route, navigation }) {
           </View>
 
           <Text style={styles.subtitle}>Plantel</Text>
-          <FlatList
-            data={plantilla}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingBottom: 16 }}
-            renderItem={({ item }) => (
-              <View style={styles.playerRow}>
-                <Image source={{ uri: item.foto }} style={styles.avatar} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{item.nombre}</Text>
-                  <Text style={styles.teamSmall}>Goles en el torneo: {item.goles}</Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.voteBtn, (!estaAbierta || yaVoto) && { opacity: 0.5 }]}
-                  onPress={() => votar(item.id)}
-                  disabled={!estaAbierta || yaVoto}
-                >
-                  <Text style={styles.voteText}>{yaVoto ? "Votaste" : "Votar"}</Text>
-                </TouchableOpacity>
-              </View>
+          <View style={styles.playerList}>
+            {plantilla.length === 0 ? (
+              <Text style={styles.empty}>No hay jugadores para este equipo.</Text>
+            ) : (
+              plantilla.map((player) => renderPlayerRow(player))
             )}
-            ListEmptyComponent={<Text style={styles.empty}>No hay jugadores para este equipo.</Text>}
-          />
-
-          <Text style={styles.subtitle}>Top 5 de la fecha</Text>
-          {topFecha.length === 0 ? (
-            <Text style={styles.empty}>No hay votos aun.</Text>
-          ) : (
-            <FlatList
-              data={topFecha}
-              keyExtractor={(item) => item.jugadorId}
-              renderItem={({ item, index }) => (
-                <View style={styles.playerRow}>
-                  <Text style={styles.pos}>{index + 1}</Text>
-                  <Image source={{ uri: item.foto }} style={styles.avatar} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.name}>{item.nombre}</Text>
-                    <Text style={styles.team}>{item.equipo}</Text>
-                  </View>
-                  <Text style={styles.votes}>{item.votos}</Text>
-                </View>
-              )}
-            />
-          )}
-
-          <Text style={styles.subtitle}>Top 5 del anio</Text>
-          {rankingAnual.length === 0 ? (
-            <Text style={styles.empty}>Todavia no hay ganadores registrados.</Text>
-          ) : (
-            <FlatList
-              data={rankingAnual}
-              keyExtractor={(item) => item.jugadorId}
-              renderItem={({ item, index }) => (
-                <View style={styles.playerRow}>
-                  <Text style={styles.pos}>{index + 1}</Text>
-                  <Image source={{ uri: item.foto }} style={styles.avatar} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.name}>{item.nombre}</Text>
-                    <Text style={styles.team}>{item.equipo}</Text>
-                  </View>
-                  <Text style={styles.votes}>{item.puntos}</Text>
-                </View>
-              )}
-            />
-          )}
-        </>
+          </View>
+        </View>
       )}
-    </View>
+
+      <View style={styles.card}>
+        <Text style={styles.subtitle}>Top 5 de la fecha</Text>
+        {topFecha.length === 0 ? (
+          <Text style={styles.empty}>No hay votos aun.</Text>
+        ) : (
+          topFecha.map((item, index) => renderRankingRow(item, index, "fecha"))
+        )}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.subtitle}>Top 5 del anio</Text>
+        {rankingAnual.length === 0 ? (
+          <Text style={styles.empty}>Todavia no hay ganadores registrados.</Text>
+        ) : (
+          rankingAnual.map((item, index) => renderRankingRow(item, index, "anio"))
+        )}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: APP_COLORS.fondo },
-  actions: { flexDirection: "row", justifyContent: "flex-end", gap: 12, marginBottom: 12 },
+  screen: { flex: 1, backgroundColor: APP_COLORS.fondo },
+  content: { padding: 16, paddingBottom: 40, gap: 16 },
+  actions: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
   actionBtn: { backgroundColor: APP_COLORS.campo, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   actionText: { color: APP_COLORS.blanco, fontWeight: "700" },
-  title: { fontSize: 20, fontWeight: "bold", marginBottom: 8, color: APP_COLORS.texto, textAlign: "center" },
-  periodo: { color: APP_COLORS.texto, marginBottom: 8, textAlign: "center" },
-  subtitle: { marginTop: 12, fontWeight: "700", marginBottom: 6, color: APP_COLORS.texto },
-  divRow: { flexDirection: "row", gap: 12, marginBottom: 12, justifyContent: "center" },
-  divBtn: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, borderColor: APP_COLORS.campo, backgroundColor: APP_COLORS.blanco },
+  title: { fontSize: 20, fontWeight: "bold", color: APP_COLORS.texto, textAlign: "center" },
+  divRow: { flexDirection: "row", gap: 12, justifyContent: "center" },
+  divBtn: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 6, borderColor: APP_COLORS.campo, backgroundColor: APP_COLORS.blanco },
   divBtnActive: { backgroundColor: APP_COLORS.campo },
   divText: { color: APP_COLORS.texto, fontWeight: "700" },
   divTextActive: { color: APP_COLORS.blanco },
-  votacionesRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 12 },
+  votacionesRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
   votacionBtn: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, borderColor: APP_COLORS.cielo, backgroundColor: APP_COLORS.blanco },
   votacionBtnActiva: { backgroundColor: APP_COLORS.campo, borderColor: APP_COLORS.campo },
   votacionText: { color: APP_COLORS.texto, fontWeight: "700" },
   votacionTextActiva: { color: APP_COLORS.blanco },
-  teamRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8, justifyContent: "center" },
+  warning: { color: "#B71C1C", textAlign: "center", marginTop: 12 },
+  card: {
+    backgroundColor: APP_COLORS.blanco,
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    gap: 12,
+  },
+  periodo: { color: APP_COLORS.texto },
+  teamRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   teamBtn: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, borderColor: APP_COLORS.campo, backgroundColor: APP_COLORS.blanco },
   teamBtnActive: { backgroundColor: APP_COLORS.campo },
   teamText: { color: APP_COLORS.texto, fontWeight: "700" },
   teamTextActive: { color: APP_COLORS.blanco },
-  playerRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: 0.5, borderColor: "#C8E6C9", backgroundColor: APP_COLORS.blanco, borderRadius: 12, paddingHorizontal: 12, marginBottom: 8 },
-  avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10, backgroundColor: APP_COLORS.cielo },
-  name: { fontWeight: "600", color: APP_COLORS.texto },
-  team: { color: "#666", fontSize: 12 },
-  teamSmall: { color: "#666", fontSize: 12 },
+  subtitle: { fontWeight: "700", fontSize: 16, color: APP_COLORS.texto },
+  playerList: { gap: 10 },
+  playerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E8F5E9",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  avatar: { width: 46, height: 46, borderRadius: 23, marginRight: 12, backgroundColor: APP_COLORS.cielo },
+  name: { fontWeight: "700", color: APP_COLORS.texto },
+  teamSmall: { color: "#607D8B", fontSize: 12 },
   voteBtn: { backgroundColor: APP_COLORS.campo, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   voteText: { color: APP_COLORS.blanco, fontWeight: "700" },
-  pos: { width: 24, textAlign: "center", fontWeight: "700", color: APP_COLORS.campo },
-  votes: { width: 36, textAlign: "center", fontWeight: "700", color: APP_COLORS.campo },
-  empty: { textAlign: "center", color: APP_COLORS.texto, marginTop: 8 },
-  warning: { color: "#B71C1C", textAlign: "center", marginTop: 12 },
+  rankingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E3F2FD",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  pos: { width: 28, textAlign: "center", fontWeight: "800", color: APP_COLORS.campo },
+  avatarSmall: { width: 42, height: 42, borderRadius: 21, marginRight: 10, backgroundColor: APP_COLORS.cielo },
+  votes: { width: 36, textAlign: "center", fontWeight: "800", color: APP_COLORS.campo, fontSize: 16 },
+  empty: { textAlign: "center", color: APP_COLORS.texto },
 });

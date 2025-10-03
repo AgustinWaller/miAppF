@@ -21,6 +21,34 @@ export default function StandingsScreen({ route, navigation }) {
 
   const goHome = () => navigation.navigate("Noticias", { division });
 
+  const renderHeader = () => (
+    <View style={[styles.row, styles.headerRow]}>
+      <Text style={[styles.cellEquipo, styles.header]}>Equipo</Text>
+      <Text style={[styles.cell, styles.header]}>PJ</Text>
+      <Text style={[styles.cell, styles.header]}>G</Text>
+      <Text style={[styles.cell, styles.header]}>E</Text>
+      <Text style={[styles.cell, styles.header]}>P</Text>
+      <Text style={[styles.cell, styles.header]}>GF</Text>
+      <Text style={[styles.cell, styles.header]}>GC</Text>
+      <Text style={[styles.cell, styles.header]}>DG</Text>
+      <Text style={[styles.cell, styles.header, styles.cellPts]}>PTS</Text>
+    </View>
+  );
+
+  const renderItem = ({ item, index }) => (
+    <View style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
+      <Text style={styles.cellEquipo}>{item.nombre}</Text>
+      <Text style={styles.cell}>{item.PJ}</Text>
+      <Text style={styles.cell}>{item.G}</Text>
+      <Text style={styles.cell}>{item.E}</Text>
+      <Text style={styles.cell}>{item.P}</Text>
+      <Text style={styles.cell}>{item.GF}</Text>
+      <Text style={styles.cell}>{item.GC}</Text>
+      <Text style={styles.cell}>{item.DG}</Text>
+      <Text style={[styles.cell, styles.cellPts]}>{item.PTS}</Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.actions}>
@@ -49,36 +77,14 @@ export default function StandingsScreen({ route, navigation }) {
       {(!Array.isArray(tabla) || tabla.length === 0) ? (
         <Text style={styles.empty}>No hay datos para esta division.</Text>
       ) : (
-        <>
-          <View style={[styles.row, styles.headerRow]}>
-            <Text style={[styles.cell, styles.equipo, styles.header]}>Equipo</Text>
-            <Text style={[styles.cell, styles.header]}>PJ</Text>
-            <Text style={[styles.cell, styles.header]}>G</Text>
-            <Text style={[styles.cell, styles.header]}>E</Text>
-            <Text style={[styles.cell, styles.header]}>P</Text>
-            <Text style={[styles.cell, styles.header]}>GF</Text>
-            <Text style={[styles.cell, styles.header]}>GC</Text>
-            <Text style={[styles.cell, styles.header]}>DG</Text>
-            <Text style={[styles.cell, styles.header, styles.pts]}>PTS</Text>
-          </View>
-          <FlatList
-            data={tabla}
-            keyExtractor={(item) => item.equipoId}
-            renderItem={({ item, index }) => (
-              <View style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
-                <Text style={[styles.cell, styles.equipo]}>{item.nombre}</Text>
-                <Text style={styles.cell}>{item.PJ}</Text>
-                <Text style={styles.cell}>{item.G}</Text>
-                <Text style={styles.cell}>{item.E}</Text>
-                <Text style={styles.cell}>{item.P}</Text>
-                <Text style={styles.cell}>{item.GF}</Text>
-                <Text style={styles.cell}>{item.GC}</Text>
-                <Text style={styles.cell}>{item.DG}</Text>
-                <Text style={[styles.cell, styles.pts]}>{item.PTS}</Text>
-              </View>
-            )}
-          />
-        </>
+        <FlatList
+          data={tabla}
+          keyExtractor={(item) => item.equipoId}
+          renderItem={renderItem}
+          ListHeaderComponent={renderHeader}
+          stickyHeaderIndices={[0]}
+          contentContainerStyle={{ paddingBottom: 24 }}
+        />
       )}
     </View>
   );
@@ -91,17 +97,34 @@ const styles = StyleSheet.create({
   actionText: { color: APP_COLORS.blanco, fontWeight: "700" },
   title: { fontSize: 20, fontWeight: "bold", marginBottom: 12, color: APP_COLORS.texto, textAlign: "center" },
   divRow: { flexDirection: "row", gap: 12, marginBottom: 12, justifyContent: "center" },
-  divBtn: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, borderColor: APP_COLORS.campo, backgroundColor: APP_COLORS.blanco },
+  divBtn: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 6, borderColor: APP_COLORS.campo, backgroundColor: APP_COLORS.blanco },
   divBtnActive: { backgroundColor: APP_COLORS.campo },
   divText: { color: APP_COLORS.texto, fontWeight: "700" },
   divTextActive: { color: APP_COLORS.blanco },
-  headerRow: { borderBottomWidth: 1, borderBottomColor: APP_COLORS.campo, paddingBottom: 6, marginBottom: 6 },
-  row: { flexDirection: "row", paddingVertical: 10, borderBottomWidth: 0.5, borderColor: "#C8E6C9" },
-  rowEven: { backgroundColor: "#E8F5E9" },
-  rowOdd: { backgroundColor: APP_COLORS.blanco },
-  cell: { width: 40, textAlign: "center", color: APP_COLORS.texto, fontWeight: "600" },
-  header: { fontWeight: "800" },
-  equipo: { flex: 1, textAlign: "left" },
-  pts: { fontWeight: "800", color: APP_COLORS.campo },
+  headerRow: { backgroundColor: "#C8E6C9", borderRadius: 14, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 10 },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+    marginBottom: 6,
+  },
+  rowEven: { backgroundColor: APP_COLORS.blanco },
+  rowOdd: { backgroundColor: "#E8F5E9" },
+  cellEquipo: {
+    flex: 2,
+    color: APP_COLORS.texto,
+    fontWeight: "700",
+    paddingRight: 8,
+  },
+  cell: {
+    flex: 0.8,
+    textAlign: "center",
+    color: APP_COLORS.texto,
+    fontWeight: "600",
+  },
+  cellPts: { color: APP_COLORS.campo, fontWeight: "800" },
+  header: { fontWeight: "800", color: APP_COLORS.texto },
   empty: { textAlign: "center", color: APP_COLORS.texto, marginTop: 20 },
 });
