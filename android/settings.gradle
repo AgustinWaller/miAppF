@@ -37,7 +37,7 @@ def expoAutolinkScriptFile = new File(expoAutolinkScriptPath)
 apply from: expoAutolinkScriptFile
 useExpoModules()
 
-rootProject.name = "miAppF"
+rootProject.name = 'Futbol App'
 include(":app")
 
 // Repositorios para todas las dependencias
