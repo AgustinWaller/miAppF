@@ -1,316 +1,210 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import {
-  getDivisionData,
-  getUltimaFechaNumero,
-  partidosPorFecha,
-  nombreEquipo,
-  getJugador,
-} from "../utils/storage";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { getMatchesByDivision } from "../services/matches";
 import { APP_COLORS } from "../theme/colors";
-import { getClubLogo } from "../assets/images";
+import { getPlayersByDivision } from "../services/players";
+import { getTeamsByDivision } from "../services/teams";
 
-const DIVISIONES = ["A", "B"];
-const MAX_SCORERS_DISPLAY = 3;
+/** Convierte Timestamp/string a YYYY-MM-DD */
+function fmtDate(x) {
+  try {
+    if (!x) return "";
+    if (typeof x === "string") return x;
+    if (x?.toDate) {
+      const d = x.toDate();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${dd}`;
+    }
+    return String(x);
+  } catch {
+    return "";
+  }
+}
+
+/** Obtiene goleadores por lado a partir de eventos (si existen). */
+function getScorers(match, side /* 'local' | 'visitante' */) {
+  const arr = (match.eventos || []).filter((e) => e?.tipo === "gol");
+  return arr
+    .filter((e) => (side === "local" ? e?.golLocal === true : e?.golVisitante === true))
+    .map((e) => e.jugadorId)
+    .filter(Boolean);
+}
 
 export default function MatchesScreen({ route, navigation }) {
   const routeDivision = route?.params?.division ?? "A";
   const [division, setDivision] = useState(routeDivision);
-  const [fechaSel, setFechaSel] = useState(() => getUltimaFechaNumero(routeDivision) || 1);
+  const [rows, setRows] = useState([]);
+  const [players, setPlayers] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedFecha, setSelectedFecha] = useState("ALL");
 
-  useEffect(() => {
-    if (routeDivision !== division) {
-      setDivision(routeDivision);
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const [data, playersList, teamsList] = await Promise.all([
+        getMatchesByDivision(division),
+        getPlayersByDivision(division),
+        getTeamsByDivision(division),
+      ]);
+      console.log(`[matches] div=${division} items=${data.length}`);
+      setRows(data);
+      setPlayers(playersList);
+      setTeams(teamsList);
+    } catch (e) {
+      console.error("Matches load error:", e);
+      setError("Error al cargar");
+      setRows([]);
+      setPlayers([]);
+      setTeams([]);
+    } finally {
+      setLoading(false);
     }
-  }, [routeDivision]);
+  }, [division]);
 
-  useEffect(() => {
-    navigation?.setParams?.({ division });
-  }, [division, navigation]);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setSelectedFecha("ALL"); }, [division]);
 
-  const divisionData = useMemo(() => getDivisionData(division) || { partidos: [] }, [division]);
+  const teamsMap = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
+
+  const items = useMemo(() => rows.map((m) => {
+    const localId = m.localId || m.local || "";
+    const visitanteId = m.visitanteId || m.visitante || "";
+    const localTeam = teamsMap.get(localId);
+    const visitaTeam = teamsMap.get(visitanteId);
+    return {
+      id: m.id,
+      fecha: fmtDate(m.dateIso || m.date_iso),
+      fechaNumero: m.fechaNumero ?? null,
+      local: localTeam?.name || localTeam?.nombre || localId || "Equipo local",
+      visitante: visitaTeam?.name || visitaTeam?.nombre || visitanteId || "Equipo visitante",
+      gl: typeof m.golesLocal === "number" ? m.golesLocal : Number(m.golesLocal || 0),
+      gv: typeof m.golesVisitante === "number" ? m.golesVisitante : Number(m.golesVisitante || 0),
+      scorersHome: getScorers(m, "local"),
+      scorersAway: getScorers(m, "visitante"),
+    };
+  }), [rows, teamsMap]);
 
   const fechas = useMemo(() => {
-    return [...new Set((divisionData.partidos || []).map((match) => match.fechaNumero))]
-      .filter((num) => typeof num === "number" && !Number.isNaN(num))
-      .sort((a, b) => a - b);
-  }, [divisionData]);
+    const set = new Set();
+    items.forEach((item) => {
+      if (item.fechaNumero !== null && item.fechaNumero !== undefined) {
+        set.add(item.fechaNumero);
+      }
+    });
+    return Array.from(set).sort((a, b) => Number(a) - Number(b));
+  }, [items]);
 
   useEffect(() => {
-    if (fechas.length === 0) return;
-    if (!fechas.includes(fechaSel)) {
-      setFechaSel(fechas[fechas.length - 1]);
+    if (selectedFecha !== "ALL" && !fechas.includes(selectedFecha)) {
+      setSelectedFecha("ALL");
     }
-  }, [fechas, fechaSel]);
+  }, [fechas, selectedFecha]);
 
-  const partidos = useMemo(() => partidosPorFecha(division, fechaSel), [division, fechaSel]);
+  const filteredItems = useMemo(() => {
+    if (selectedFecha === "ALL") return items;
+    return items.filter((item) => item.fechaNumero === selectedFecha);
+  }, [items, selectedFecha]);
 
-  const goHome = () => navigation.navigate("Noticias", { division });
-
-  const getScorers = (match, teamId) => {
-    return (match.eventos || [])
-      .filter((evt) => evt.tipo === "gol")
-      .map((evt) => ({ evt, player: getJugador(division, evt.jugadorId) }))
-      .filter((data) => data.player && data.player.equipoId === teamId)
-      .map((data) => data.player.nombre);
-  };
-
-  const renderScorersCompact = (list) => {
-    if (list.length === 0) return "Sin goles";
-    if (list.length <= MAX_SCORERS_DISPLAY) return list.join(", ");
-    return `${list.slice(0, MAX_SCORERS_DISPLAY).join(", ")} (+${list.length - MAX_SCORERS_DISPLAY})`;
-  };
-
-  const formatFecha = (fecha) => {
-    if (!fecha) return "";
-    const [yyyy, mm, dd] = fecha.split("-");
-    return `${dd}/${mm}`;
-  };
-
-  const renderMatch = ({ item }) => {
-    const localName = nombreEquipo(division, item.localId);
-    const visitaName = nombreEquipo(division, item.visitanteId);
-    const localGoals = getScorers(item, item.localId);
-    const visitaGoals = getScorers(item, item.visitanteId);
-    const localLogo = getClubLogo(item.localId);
-    const visitaLogo = getClubLogo(item.visitanteId);
-
-    return (
-      <View style={styles.matchCard}>
-        <LinearGradient
-          colors={["#021B79", "#0575E6", "#021B79"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.scoreboard}
-        >
-          <View style={[styles.sidePanel, styles.sidePanelLeft]}>
-            <View style={styles.teamBadge}>
-              <Image source={localLogo} style={styles.teamLogo} />
-            </View>
-            <Text style={[styles.teamLabel, { textAlign: "left" }]}>{localName}</Text>
-            <Text style={[styles.scorersSmall, { textAlign: "left" }]}>{renderScorersCompact(localGoals)}</Text>
-          </View>
-
-          <View style={styles.centerStack}>
-            <Text style={styles.scoreNumber}>{item.golesLocal}</Text>
-            <View style={styles.minuteBubble}>
-              <Text style={styles.minuteText}>
-                {item.fechaCalendario ? formatFecha(item.fechaCalendario) : `F${item.fechaNumero}`}
-              </Text>
-            </View>
-            <Text style={styles.scoreNumber}>{item.golesVisitante}</Text>
-          </View>
-
-          <View style={[styles.sidePanel, styles.sidePanelRight]}>
-            <View style={styles.teamBadge}>
-              <Image source={visitaLogo} style={styles.teamLogo} />
-            </View>
-            <Text style={[styles.teamLabel, { textAlign: "right" }]}>{visitaName}</Text>
-            <Text style={[styles.scorersSmall, { textAlign: "right" }]}>{renderScorersCompact(visitaGoals)}</Text>
-          </View>
-        </LinearGradient>
-
-        <Text style={styles.metaText}>
-          {`Fecha ${item.fechaNumero}`} {item.fechaCalendario ? `� Jugado el ${item.fechaCalendario}` : ""}
-        </Text>
-
-        <View style={styles.scorersRow}>
-          <View style={styles.scorersColumn}>
-            <Text style={styles.scorersTitle}>Goles {localName}</Text>
-            {localGoals.length === 0 ? (
-              <Text style={styles.scorerLine}>Sin goles</Text>
-            ) : (
-              localGoals.map((nombre, index) => (
-                <Text key={`${item.id}-loc-${index}`} style={styles.scorerLine}>
-                  - {nombre}
-                </Text>
-              ))
-            )}
-          </View>
-
-          <View style={styles.scorersColumn}>
-            <Text style={styles.scorersTitle}>Goles {visitaName}</Text>
-            {visitaGoals.length === 0 ? (
-              <Text style={styles.scorerLine}>Sin goles</Text>
-            ) : (
-              visitaGoals.map((nombre, index) => (
-                <Text key={`${item.id}-vis-${index}`} style={styles.scorerLine}>
-                  - {nombre}
-                </Text>
-              ))
-            )}
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.detailBtn}
-          onPress={() => navigation.navigate("ScoreDetail", { division, match: item })}
-        >
-          <Text style={styles.detailText}>Ver detalle</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
+  const stats = useMemo(() => {
+    if (!filteredItems.length) return { matches: 0, goles: 0 };
+    const goles = filteredItems.reduce((acc, it) => acc + Number(it.gl || 0) + Number(it.gv || 0), 0);
+    return { matches: filteredItems.length, goles };
+  }, [filteredItems]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionBtn} onPress={goHome}>
-          <Text style={styles.actionText}>Inicio</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.openDrawer()}>
-          <Text style={styles.actionText}>Menu</Text>
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+      <Text style={styles.debug}>División {division} • Partidos: {items.length}</Text>
+
+      <View style={styles.switchRow}>
+        {["A", "B"].map((d) => (
+          <TouchableOpacity key={d} onPress={() => setDivision(d)} style={[styles.divBtn, division === d && styles.activeBtn]}>
+            <Text style={[styles.divTxt, division === d && styles.activeTxt]}>{d}</Text>
+          </TouchableOpacity>
+        ))}
+        <TouchableOpacity onPress={load} style={styles.reload}>
+          <Text style={styles.reloadTxt}>Refrescar</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.title}>Partidos - Division {division}</Text>
-
-      <View style={styles.divisionRow}>
-        {DIVISIONES.map((key) => (
+      <View style={styles.fechaRow}>
+        <TouchableOpacity
+          style={[styles.fechaBtn, selectedFecha === "ALL" && styles.fechaBtnActive]}
+          onPress={() => setSelectedFecha("ALL")}
+        >
+          <Text style={[styles.fechaTxt, selectedFecha === "ALL" && styles.fechaTxtActive]}>Todas</Text>
+        </TouchableOpacity>
+        {fechas.map((f) => (
           <TouchableOpacity
-            key={key}
-            onPress={() => setDivision(key)}
-            style={[styles.divBtn, division === key && styles.divBtnActive]}
+            key={`fecha-${f}`}
+            style={[styles.fechaBtn, selectedFecha === f && styles.fechaBtnActive]}
+            onPress={() => setSelectedFecha(f)}
           >
-            <Text style={[styles.divText, division === key && styles.divTextActive]}>{key}</Text>
+            <Text style={[styles.fechaTxt, selectedFecha === f && styles.fechaTxtActive]}>Fecha {f}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {fechas.length === 0 ? (
-        <Text style={styles.empty}>No hay datos para esta division.</Text>
-      ) : (
-        <>
-          <View style={styles.fechasRow}>
-            {fechas.map((num) => (
-              <TouchableOpacity
-                key={num}
-                onPress={() => setFechaSel(num)}
-                style={[styles.fechaBtn, fechaSel === num && styles.fechaBtnActive]}
-              >
-                <Text style={[styles.fechaText, fechaSel === num && styles.fechaTextActive]}>Fecha {num}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      <Text style={styles.stats}>Partidos: {stats.matches} • Goles totales: {stats.goles}</Text>
 
-          <FlatList
-            data={partidos}
-            keyExtractor={(item) => item.id}
-            renderItem={renderMatch}
-            contentContainerStyle={{ paddingBottom: 24, gap: 16 }}
-          />
-        </>
+      {loading ? (
+        <ActivityIndicator style={{ marginTop: 16 }} />
+      ) : error ? (
+        <Text style={styles.empty} onPress={load}>Error al cargar. Toca para reintentar.</Text>
+      ) : (
+        <FlatList
+          data={filteredItems}
+          keyExtractor={(it) => it.id}
+          contentContainerStyle={{ padding: 16 }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => navigation.navigate("ScoreDetail", {
+                division,
+                match: rows.find((m) => m.id === item.id) || item,
+                jugadores: players,
+              })}
+            >
+              <Text style={styles.date}>{item.fecha}{item.fechaNumero !== null ? ` • Fecha ${item.fechaNumero}` : ""}</Text>
+              <Text style={styles.title}>{item.local} {item.gl} - {item.gv} {item.visitante}</Text>
+              {(item.scorersHome.length || item.scorersAway.length) ? (
+                <Text style={styles.scorers}>
+                  Goles: {item.scorersHome.join(", ") || "-"} vs {item.scorersAway.join(", ") || "-"}
+                </Text>
+              ) : null}
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={<Text style={styles.empty}>No hay partidos para esta selección.</Text>}
+          onRefresh={load}
+          refreshing={loading}
+        />
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: APP_COLORS.fondo },
-  actions: { flexDirection: "row", justifyContent: "flex-end", gap: 12, marginBottom: 12 },
-  actionBtn: { backgroundColor: APP_COLORS.campo, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
-  actionText: { color: APP_COLORS.blanco, fontWeight: "700" },
-  title: { fontSize: 20, fontWeight: "bold", marginBottom: 12, color: APP_COLORS.texto, textAlign: "center" },
-  divisionRow: { flexDirection: "row", gap: 12, marginBottom: 12, justifyContent: "center" },
-  divBtn: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 6, borderColor: APP_COLORS.campo, backgroundColor: APP_COLORS.blanco },
-  divBtnActive: { backgroundColor: APP_COLORS.campo },
-  divText: { color: APP_COLORS.texto, fontWeight: "700" },
-  divTextActive: { color: APP_COLORS.blanco },
-  fechasRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 16, justifyContent: "center" },
-  fechaBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: APP_COLORS.cielo, backgroundColor: APP_COLORS.blanco },
-  fechaBtnActive: { backgroundColor: APP_COLORS.campo, borderColor: APP_COLORS.campo },
-  fechaText: { color: APP_COLORS.texto, fontWeight: "700" },
-  fechaTextActive: { color: APP_COLORS.blanco },
-  matchCard: {
-    backgroundColor: "#06142E",
-    borderRadius: 26,
-    padding: 18,
-    borderWidth: 2,
-    borderColor: "#0B2A5B",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  scoreboard: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 22,
-    paddingVertical: 18,
-    paddingHorizontal: 14,
-  },
-  sidePanel: {
-    flex: 1,
-    justifyContent: "center",
-    gap: 6,
-  },
-  sidePanelLeft: {
-    alignItems: "flex-start",
-  },
-  sidePanelRight: {
-    alignItems: "flex-end",
-  },
-  teamBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  teamLogo: { width: 48, height: 48, resizeMode: "contain" },
-  teamLabel: { color: "#F3F7FF", fontWeight: "700", fontSize: 14 },
-  scorersSmall: { color: "#CCE7FF", fontSize: 12 },
-  centerStack: {
-    width: 150,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(0,0,0,0.25)",
-    borderRadius: 24,
-    paddingHorizontal: 22,
-    paddingVertical: 12,
-    marginHorizontal: 8,
-  },
-  scoreNumber: { fontSize: 30, fontWeight: "900", color: "#FFFFFF" },
-  minuteBubble: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.6)",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.25)",
-  },
-  minuteText: { color: "#FFFFFF", fontWeight: "700", fontSize: 12 },
-  metaText: {
-    marginTop: 12,
-    color: APP_COLORS.cielo,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  scorersRow: {
-    flexDirection: "row",
-    marginTop: 16,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 16,
-    padding: 12,
-    gap: 12,
-  },
-  scorersColumn: { flex: 1 },
-  scorersTitle: { color: "#BBDEFB", fontWeight: "700", marginBottom: 6 },
-  scorerLine: { color: "#E3F2FD", marginBottom: 2 },
-  detailBtn: {
-    marginTop: 16,
-    alignSelf: "flex-end",
-    backgroundColor: APP_COLORS.campo,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  detailText: { color: APP_COLORS.blanco, fontWeight: "700" },
-  empty: { textAlign: "center", color: APP_COLORS.texto, marginTop: 24 },
+  card: { backgroundColor: "#f5f5f5", padding: 12, marginBottom: 8, borderRadius: 8 },
+  title: { fontWeight: "700", fontSize: 16 },
+  date: { color: "#2f7d32", marginBottom: 6, fontWeight: "600" },
+  scorers: { marginTop: 4, color: "#444" },
+  switchRow: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12 },
+  divBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: "#2f7d32" },
+  activeBtn: { backgroundColor: "#2f7d32" },
+  divTxt: { fontWeight: "700", color: "#2f7d32" },
+  activeTxt: { color: "#fff" },
+  reload: { marginLeft: "auto" },
+  reloadTxt: { color: "#2f7d32", fontWeight: "700" },
+  empty: { textAlign: "center", marginTop: 32, color: "#333" },
+  debug: { color: "#777", marginLeft: 12, marginTop: 12 },
+  fechaRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 12, paddingBottom: 8 },
+  fechaBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: APP_COLORS.campo },
+  fechaBtnActive: { backgroundColor: APP_COLORS.campo },
+  fechaTxt: { color: APP_COLORS.campo, fontWeight: "600" },
+  fechaTxtActive: { color: APP_COLORS.blanco },
+  stats: { color: APP_COLORS.texto, marginHorizontal: 16, marginBottom: 8, fontWeight: "600" },
 });

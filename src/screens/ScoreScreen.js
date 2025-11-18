@@ -1,11 +1,17 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from "react-native";
-import { nombreEquipo, nombreJugador } from "../utils/storage";
 import { APP_COLORS } from "../theme/colors";
 
 export default function ScoreScreen({ route, navigation }) {
   const division = route?.params?.division ?? "A";
   const match = route?.params?.match;
+  const jugadores = route?.params?.jugadores || [];
+
+  const playerMap = useMemo(() => {
+    return new Map(
+      jugadores.map((player) => [player.id, player.name || player.nombre || player.displayName])
+    );
+  }, [jugadores]);
 
   const goHome = () => navigation.navigate("Noticias", { division });
 
@@ -25,8 +31,10 @@ export default function ScoreScreen({ route, navigation }) {
     );
   }
 
-  const local = nombreEquipo(division, match.localId);
-  const visitante = nombreEquipo(division, match.visitanteId);
+  const local = match.localName || match.local || "";
+  const visitante = match.visitaName || match.visitante || "";
+
+  const getNombreJugador = (jugadorId) => playerMap.get(jugadorId) || jugadorId;
 
   return (
     <View style={styles.container}>
@@ -54,7 +62,7 @@ export default function ScoreScreen({ route, navigation }) {
         renderItem={({ item }) => (
           <View style={styles.eventRow}>
             <Text style={styles.eventType}>{item.tipo}</Text>
-            <Text style={styles.eventInfo}>{nombreJugador(division, item.jugadorId) || item.jugadorId}</Text>
+            <Text style={styles.eventInfo}>{getNombreJugador(item.jugadorId)}</Text>
           </View>
         )}
         ListEmptyComponent={<Text style={styles.empty}>No hay eventos para este partido.</Text>}

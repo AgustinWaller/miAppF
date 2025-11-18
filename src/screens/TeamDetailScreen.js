@@ -1,23 +1,55 @@
 import React, { useMemo } from "react";
-import { View, Text, FlatList, StyleSheet, Image } from "react-native";
-import { getDivisionData, jugadoresPorEquipo } from "../utils/storage";
+import { View, Text, FlatList, StyleSheet, Image, ActivityIndicator } from "react-native";
+import { useDivisionData } from "../hooks/useDivisionData";
+import { jugadoresPorEquipoFromData } from "../utils/storage";
 import { APP_COLORS } from "../theme/colors";
 import { getClubLogo, getPlayerPhoto } from "../assets/images";
 
 export default function TeamDetailScreen({ route }) {
   const division = route?.params?.division ?? "A";
-  const teamId = route?.params?.teamId;
-  const divData = getDivisionData(division) || { equipos: [] };
-  const team = divData.equipos.find((t) => t.id === teamId);
+  const teamParam = route?.params?.team;
+  const teamId = route?.params?.teamId || teamParam?.id;
 
-  const plantilla = useMemo(() => jugadoresPorEquipo(division, teamId), [division, teamId]);
+  const { data, loading, error, refresh } = useDivisionData(division);
+
+  const team = useMemo(() => {
+    if (!data) return teamParam || null;
+    return (data.equipos || []).find((t) => t.id === teamId) || teamParam || null;
+  }, [data, teamId, teamParam]);
+
+  const plantilla = useMemo(() => {
+    if (!data) return [];
+    return jugadoresPorEquipoFromData(data, teamId).map((player) => ({
+      ...player,
+      nombre: player.name || player.nombre,
+    }));
+  }, [data, teamId]);
+
   const teamLogo = getClubLogo(teamId);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: "center" }] }>
+        <ActivityIndicator size="large" color={APP_COLORS.campo} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }] }>
+        <Text style={styles.empty} onPress={refresh}>
+          Error al cargar. Toca para reintentar.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Image source={teamLogo} style={styles.teamLogo} />
-        <Text style={styles.title}>{team?.nombre ?? "Equipo"}</Text>
+        <Text style={styles.title}>{team?.name || team?.nombre || "Equipo"}</Text>
       </View>
 
       <Text style={styles.subtitle}>Plantel</Text>
@@ -74,5 +106,5 @@ const styles = StyleSheet.create({
   goals: { fontSize: 14, fontWeight: "700", color: APP_COLORS.campo },
   newsItem: { fontSize: 14, marginVertical: 2, color: APP_COLORS.texto },
   noNews: { fontSize: 14, fontStyle: "italic", color: "#666", marginTop: 8 },
-  empty: { fontSize: 14, fontStyle: "italic", color: "#666", marginTop: 8 },
+  empty: { fontSize: 14, fontStyle: "italic", color: "#666", marginTop: 8, textAlign: "center" },
 });

@@ -1,5 +1,11 @@
 division;player_id;team_id;name;photo_url
-A;pen_canobbio;pen;Agustin Canobbio;
+A;sancarlos_laclau;sancarlos;Pablo Laclau;
+A;sancarlos_wilder;sancarlos;Wilder Gottero;
+A;sancarlos_barrotti;sancarlos;Gabriel Barrotti;
+A;sancarlos_castrillo;sancarlos;Damián Castrillo;
+A;sancarlos_cabrera;sancarlos;Diego Cabrera;
+A;sancarlos_coccolo;sancarlos;Federico Coccolo;
+A;horqueta_tatan;horqueta;Jonatan Ricca;
 A;pen_torres;pen;Facundo Torres;
 A;pen_viatri;pen;Lucas Viatri;
 A;pen_pellistri;pen;Facundo Pellistri;
@@ -15,6 +21,7 @@ A;def_silva;def;Lucas Silva;
 A;def_perez;def;Diego Perez;
 A;def_mendez;def;Matias Mendez;
 A;def_cabrera;def;Juan Cabrera;
+A;nac_waller;nac;Facundo Waller;
 B;bri_morales;bri;Santiago Morales;
 B;bri_gomez;bri;Juan Gomez;
 B;bri_fernandez;bri;Emanuel Fernandez;

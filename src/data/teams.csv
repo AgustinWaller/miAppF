@@ -1,10 +1,15 @@
 division;team_id;name
-A;pen;Penarol
-A;nac;Nacional
-A;dan;Danubio
-A;def;Defensor
-B;bri;Bristol
-B;alp;Alto Peru
-B;col;Colon
-B;bel;Bella Vista
-
+A;sancarlos;San Carlos
+A;juventud;Juventud
+A;horqueta;Horqueta Wanderers
+A;elgeneral;El General
+A;artesano;Artesano
+A;maracana;Maracana
+A;barriosur;Barrio Sur
+B;progreso;Progreso
+B;sanpedro;San Pedro
+B;central;Central
+B;huracan;Huracan
+B;semillero;Semillero
+B;sarandi;Sarandí
+B;nacional;Nacional
