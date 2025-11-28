@@ -4,6 +4,7 @@ import { useDivisionData } from "../hooks/useDivisionData";
 import { jugadoresPorEquipoFromData } from "../utils/storage";
 import { APP_COLORS } from "../theme/colors";
 import { getClubLogo, getPlayerPhoto } from "../assets/images";
+import { safeImage, FALLBACK_TEAM, FALLBACK_PLAYER } from "../utils/images";
 
 export default function TeamDetailScreen({ route }) {
   const division = route?.params?.division ?? "A";
@@ -25,7 +26,10 @@ export default function TeamDetailScreen({ route }) {
     }));
   }, [data, teamId]);
 
-  const teamLogo = getClubLogo(teamId);
+  // preferimos la URL desde el documento; si no existe, fallback o getClubLogo
+  const teamLogoUri = team?.logoUrl || team?.logoURL || getClubLogo(teamId) || "";
+  const teamLogo = safeImage(teamLogoUri, FALLBACK_TEAM);
+
 
   if (loading) {
     return (
@@ -46,26 +50,50 @@ export default function TeamDetailScreen({ route }) {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Image source={teamLogo} style={styles.teamLogo} />
-        <Text style={styles.title}>{team?.name || team?.nombre || "Equipo"}</Text>
-      </View>
+  <View style={styles.container}>
 
-      <Text style={styles.subtitle}>Plantel</Text>
-      <FlatList
-        data={plantilla}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => {
-          const photo = getPlayerPhoto(item.id);
-          return (
-            <View style={styles.playerRow}>
-              <Image source={photo} style={styles.avatar} />
-              <Text style={styles.playerName}>{item.nombre}</Text>
-              <Text style={styles.goals}>{item.goles ?? 0} goles</Text>
-            </View>
-          );
-        }}
+    {/* ENCABEZADO DEL EQUIPO */}
+    <View style={styles.header}>
+      <Image
+        source={
+          teamLogoUri
+            ? { uri: teamLogoUri }
+            : require("../../assets/no_team.png")
+        }
+        style={styles.teamLogo}
+        resizeMode="contain"
+      />
+
+      <Text style={styles.title}>
+        {team?.name || team?.nombre || "Equipo"}
+      </Text>
+    </View>
+
+    {/* LISTA DE JUGADORES */}
+    <Text style={styles.subtitle}>Plantel</Text>
+
+    <FlatList
+      data={plantilla}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => {
+        const photo =
+          item?.photoUrl || item?.photoURL
+            ? { uri: item.photoUrl || item.photoURL }
+            : require("../../assets/no_player.png");
+
+        return (
+          <View style={styles.playerRow}>
+            <Image
+              source={photo}
+              style={styles.avatar}
+              resizeMode="cover"
+            />
+
+            <Text style={styles.playerName}>{item.nombre}</Text>
+            <Text style={styles.goals}>{item.goles ?? 0} goles</Text>
+          </View>
+        );
+      }}
         ListEmptyComponent={<Text style={styles.empty}>No hay jugadores cargados.</Text>}
       />
 

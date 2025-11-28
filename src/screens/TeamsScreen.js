@@ -1,9 +1,25 @@
+
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Image,
+} from "react-native";
 import { getTeamsByDivision } from "../services/teams";
-import { loadFavoriteTeams, addFavoriteTeam, removeFavoriteTeam } from "../utils/favoritesStorage";
+import {
+  loadFavoriteTeams,
+  addFavoriteTeam,
+  removeFavoriteTeam,
+} from "../utils/favoritesStorage";
 import { getPersistentDeviceId } from "../utils/device";
-import { getTeamFavorites, setTeamFavorite } from "../services/teamFavorites";
+import {
+  getTeamFavorites,
+  setTeamFavorite,
+} from "../services/teamFavorites";
 
 export default function TeamsScreen({ navigation }) {
   const [division, setDivision] = useState("A");
@@ -16,7 +32,9 @@ export default function TeamsScreen({ navigation }) {
   const refreshCounts = useCallback(async () => {
     try {
       const counts = await getTeamFavorites();
-      setFavoriteCounts(new Map(counts.map((item) => [item.teamId, item.count])));
+      setFavoriteCounts(
+        new Map(counts.map((item) => [item.teamId, item.count]))
+      );
     } catch (e) {
       console.error("getTeamFavorites error", e);
     }
@@ -26,8 +44,10 @@ export default function TeamsScreen({ navigation }) {
     try {
       setLoading(true);
       setError("");
+
       const data = await getTeamsByDivision(division);
       await refreshCounts();
+
       console.log(`[teams] div=${division} items=${data.length}`);
       setRows(data);
     } catch (e) {
@@ -38,84 +58,149 @@ export default function TeamsScreen({ navigation }) {
     }
   }, [division, refreshCounts]);
 
-  useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    loadFavoriteTeams().then(setFavorites).catch(() => setFavorites([]));
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    loadFavoriteTeams()
+      .then(setFavorites)
+      .catch(() => setFavorites([]));
   }, []);
 
-  const toggleFavorite = useCallback(async (team) => {
-    try {
-      const deviceId = await getPersistentDeviceId();
-      const isFavorite = favorites.includes(team.id);
-      if (isFavorite) {
-        const updated = await removeFavoriteTeam(team.id);
-        setFavorites(updated);
-        await setTeamFavorite({ teamId: team.id, userId: deviceId, divisionId: division, favorite: false });
-      } else {
-        const updated = await addFavoriteTeam(team.id);
-        setFavorites(updated);
-        await setTeamFavorite({ teamId: team.id, userId: deviceId, divisionId: division, favorite: true });
-      }
-      await refreshCounts();
-    } catch (e) {
-      console.error("toggleFavorite error", e);
-    }
-  }, [favorites, division, refreshCounts]);
+  const toggleFavorite = useCallback(
+    async (team) => {
+      try {
+        const deviceId = await getPersistentDeviceId();
+        const isFavorite = favorites.includes(team.id);
+        
+        if (isFavorite) {
+          const updated = await removeFavoriteTeam(team.id);
+          setFavorites(updated);
 
-  const renderTeam = ({ item }) => {
-    const count = favoriteCounts.get(item.id) || 0;
-    const isFavorite = favorites.includes(item.id);
-    return (
-      <View style={styles.teamRow}>
-        <TouchableOpacity
-          style={styles.teamButton}
-          onPress={() => navigation.navigate("TeamDetail", { division, teamId: item.id })}
-        >
-          <Text style={styles.teamName}>{item.name}</Text>
+          await setTeamFavorite({
+            teamId: team.id,
+            userId: deviceId,
+            divisionId: division,
+            favorite: false,
+          });
+        } else {
+          const updated = await addFavoriteTeam(team.id);
+          setFavorites(updated);
+
+          await setTeamFavorite({
+            teamId: team.id,
+            userId: deviceId,
+            divisionId: division,
+            favorite: true,
+          });
+        }
+
+        await refreshCounts();
+      } catch (e) {
+        console.error("toggleFavorite error", e);
+      }
+    },
+    [favorites, division, refreshCounts]
+  );
+
+const renderTeam = ({ item }) => {
+  console.log("TEAM ITEM:", item); // <--- IMPORTANTE PARA VER QUÉ LLEGA
+
+  const nombre =
+    item?.name ||
+    item?.nombre ||
+    item?.Nombre ||
+    item?.nombreEquipo ||
+    item?.teamName ||
+    "Equipo sin nombre";
+
+  const count = favoriteCounts.get(item.id) || 0;
+  const isFavorite = favorites.includes(item.id);
+
+  return (
+    <View style={styles.teamRow}>
+      <TouchableOpacity
+        style={styles.teamButton}
+        onPress={() =>
+          navigation.navigate("TeamDetail", {
+            division,
+            teamId: item.id,
+          })
+        }
+      >
+        <Text style={styles.teamName}>{nombre}</Text>
+      </TouchableOpacity>
+
+      <View style={styles.favoriteRow}>
+        <TouchableOpacity onPress={() => toggleFavorite(item)}>
+          <Text
+            style={[
+              styles.favoriteIcon,
+              isFavorite && styles.favoriteIconActive,
+            ]}
+          >
+            {isFavorite ? "♥" : "♡"}
+          </Text>
         </TouchableOpacity>
-        <View style={styles.favoriteRow}>
-          <TouchableOpacity onPress={() => toggleFavorite(item)}>
-            <Text style={[styles.favoriteIcon, isFavorite && styles.favoriteIconActive]}>
-              {isFavorite ? "♥" : "♡"}
-            </Text>
-          </TouchableOpacity>
-          <Text style={styles.favoriteCount}>{count}</Text>
-        </View>
+        <Text style={styles.favoriteCount}>{count}</Text>
       </View>
-    );
-  };
+    </View>
+  );
+};
+
 
   return (
     <View style={styles.container}>
-      <Text style={styles.debug}>División {division} • Equipos: {rows.length}</Text>
+      <Text style={styles.debug}>
+        División {division} • Equipos: {rows.length}
+      </Text>
+
+      {/* Selector A / B */}
       <View style={styles.divisionSwitch}>
         {["A", "B"].map((div) => (
           <TouchableOpacity
             key={div}
-            style={[styles.divButton, division === div && styles.activeDivButton]}
+            style={[
+              styles.divButton,
+              division === div && styles.activeDivButton,
+            ]}
             onPress={() => setDivision(div)}
           >
-            <Text style={[styles.divText, division === div && styles.activeDivText]}>{div}</Text>
+            <Text
+              style={[
+                styles.divText,
+                division === div && styles.activeDivText,
+              ]}
+            >
+              {div}
+            </Text>
           </TouchableOpacity>
         ))}
+
         <TouchableOpacity onPress={load} style={styles.reload}>
           <Text style={styles.reloadTxt}>Refrescar</Text>
         </TouchableOpacity>
       </View>
 
+      {/* Loader / Lista */}
       {loading ? (
         <ActivityIndicator style={{ marginTop: 16 }} />
       ) : error ? (
-        <Text style={styles.empty} onPress={load}>Error al cargar. Toca para reintentar.</Text>
+        <Text style={styles.empty} onPress={load}>
+          Error al cargar. Toca para reintentar.
+        </Text>
       ) : (
         <FlatList
           data={rows}
           renderItem={renderTeam}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 16 }}
-          ListEmptyComponent={<Text style={styles.empty}>No hay equipos.</Text>}
-          onRefresh={load}
+          ListEmptyComponent={
+            <Text style={styles.empty}>No hay equipos.</Text>
+          }
           refreshing={loading}
+          onRefresh={load}
         />
       )}
     </View>
@@ -124,14 +209,31 @@ export default function TeamsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#fff" },
-  divisionSwitch: { flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 8 },
-  divButton: { padding: 10, backgroundColor: "#eee", alignItems: "center", borderRadius: 20, borderWidth: 1, borderColor: "#2f7d32" },
+  divisionSwitch: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    gap: 8,
+  },
+  divButton: {
+    padding: 10,
+    backgroundColor: "#eee",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#2f7d32",
+  },
   activeDivButton: { backgroundColor: "#2f7d32" },
   divText: { fontWeight: "bold", color: "#2f7d32" },
   activeDivText: { color: "#fff" },
   reload: { marginLeft: "auto" },
   reloadTxt: { color: "#2f7d32", fontWeight: "700" },
-  teamRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1, borderColor: "#ddd" },
+  teamRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: "#ddd",
+  },
   teamButton: { flex: 1 },
   teamName: { fontSize: 16, fontWeight: "600" },
   favoriteRow: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -141,4 +243,3 @@ const styles = StyleSheet.create({
   empty: { textAlign: "center", marginTop: 24, color: "#333" },
   debug: { color: "#777", marginBottom: 4 },
 });
-

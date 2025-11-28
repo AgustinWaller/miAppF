@@ -18,7 +18,7 @@ const firebaseConfig = {
 
 if (!firebaseConfig.projectId) {
   console.warn(
-    "[firebase] Configuración incompleta. Define las variables EXPO_PUBLIC_FIREBASE_* o configúralas en app.config.js."
+    "[firebase] ConfiguraciÃ³n incompleta. Define EXPO_PUBLIC_FIREBASE_* o configÃºralas en app.config.js."
   );
 }
 

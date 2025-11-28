@@ -76,12 +76,20 @@ export default function TopPlayersScreen({ route }) {
     }
     try {
       const q = query(
-        collection(db, 'votacion'),
-        where('divisionId', '==', division),
-        orderBy('cierra', 'desc')
-      );
-      const snap = await getDocs(q);
-      const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  collection(db, 'votacion'),
+  where('divisionId', '==', division)
+);
+const snap = await getDocs(q);
+
+// ordenamos localmente para evitar índices en Firestore
+const docs = snap.docs
+  .map((d) => ({ id: d.id, ...d.data() }))
+  .sort((a, b) => {
+    const da = parseDate(a.cierra)?.getTime() ?? 0;
+    const db = parseDate(b.cierra)?.getTime() ?? 0;
+    return db - da; // más reciente primero
+  });
+
       const closed = docs.filter((v) => v.abierto !== true && (!v.cierra || (parseDate(v.cierra)?.getTime() ?? 0) <= Date.now()));
 
       const votesPer = {};

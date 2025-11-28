@@ -1,282 +1,42 @@
 {
-  "divisiones": {
+  "divisions": {
     "A": {
-      "equipos": [
-        { "id": "pen", "nombre": "Penarol" },
-        { "id": "nac", "nombre": "Nacional" },
-        { "id": "dan", "nombre": "Danubio" },
-        { "id": "def", "nombre": "Defensor" }
-      ],
-      "jugadores": [
-        { "id": "pen_canobbio", "equipoId": "pen", "nombre": "Agustin Canobbio", "foto": "" },
-        { "id": "pen_torres", "equipoId": "pen", "nombre": "Facundo Torres", "foto": "" },
-        { "id": "pen_viatri", "equipoId": "pen", "nombre": "Lucas Viatri", "foto": "" },
-        { "id": "pen_pellistri", "equipoId": "pen", "nombre": "Facundo Pellistri", "foto": "" },
-        { "id": "nac_suarez", "equipoId": "nac", "nombre": "Luis Suarez", "foto": "" },
-        { "id": "nac_espino", "equipoId": "nac", "nombre": "Camilo Espino", "foto": "" },
-        { "id": "nac_ramirez", "equipoId": "nac", "nombre": "Felipe Ramirez", "foto": "" },
-        { "id": "nac_olivera", "equipoId": "nac", "nombre": "Jorge Olivera", "foto": "" },
-        { "id": "dan_sosa", "equipoId": "dan", "nombre": "Andres Sosa", "foto": "" },
-        { "id": "dan_martinez", "equipoId": "dan", "nombre": "Martin Martinez", "foto": "" },
-        { "id": "dan_lopez", "equipoId": "dan", "nombre": "Nicolas Lopez", "foto": "" },
-        { "id": "dan_garcia", "equipoId": "dan", "nombre": "Matias Garcia", "foto": "" },
-        { "id": "def_silva", "equipoId": "def", "nombre": "Lucas Silva", "foto": "" },
-        { "id": "def_perez", "equipoId": "def", "nombre": "Diego Perez", "foto": "" },
-        { "id": "def_mendez", "equipoId": "def", "nombre": "Matias Mendez", "foto": "" },
-        { "id": "def_cabrera", "equipoId": "def", "nombre": "Juan Cabrera", "foto": "" }
-      ],
-      "partidos": [
-        {
-          "id": "pen_nac_f1",
-          "fechaNumero": 1,
-          "fechaCalendario": "2025-09-15",
-          "localId": "pen",
-          "visitanteId": "nac",
-          "golesLocal": 2,
-          "golesVisitante": 1,
-          "eventos": [
-            { "tipo": "gol", "jugadorId": "pen_canobbio" },
-            { "tipo": "gol", "jugadorId": "pen_torres" },
-            { "tipo": "gol", "jugadorId": "nac_suarez" }
-          ]
+      "teams": {
+        "Peñarol": {
+          "players": [
+            { "name": "Agustín Canobbio", "goals": 5 },
+            { "name": "Maximiliano Olivera", "goals": 1 },
+            { "name": "Sebastián Rodríguez", "goals": 3 }
+          ],
+          "news": ["Peñarol ganó de local", "Lesión en la defensa"]
         },
-        {
-          "id": "dan_def_f1",
-          "fechaNumero": 1,
-          "fechaCalendario": "2025-09-16",
-          "localId": "dan",
-          "visitanteId": "def",
-          "golesLocal": 1,
-          "golesVisitante": 1,
-          "eventos": [
-            { "tipo": "gol", "jugadorId": "dan_sosa" },
-            { "tipo": "gol", "jugadorId": "def_silva" }
-          ]
-        },
-        {
-          "id": "nac_dan_f2",
-          "fechaNumero": 2,
-          "fechaCalendario": "2025-09-22",
-          "localId": "nac",
-          "visitanteId": "dan",
-          "golesLocal": 3,
-          "golesVisitante": 0,
-          "eventos": [
-            { "tipo": "gol", "jugadorId": "nac_suarez" },
-            { "tipo": "gol", "jugadorId": "nac_ramirez" },
-            { "tipo": "gol", "jugadorId": "nac_suarez" }
-          ]
-        },
-        {
-          "id": "def_pen_f2",
-          "fechaNumero": 2,
-          "fechaCalendario": "2025-09-23",
-          "localId": "def",
-          "visitanteId": "pen",
-          "golesLocal": 2,
-          "golesVisitante": 2,
-          "eventos": [
-            { "tipo": "gol", "jugadorId": "def_perez" },
-            { "tipo": "gol", "jugadorId": "def_mendez" },
-            { "tipo": "gol", "jugadorId": "pen_canobbio" },
-            { "tipo": "gol", "jugadorId": "pen_viatri" }
-          ]
-        },
-        {
-          "id": "pen_dan_f3",
-          "fechaNumero": 3,
-          "fechaCalendario": "2025-09-29",
-          "localId": "pen",
-          "visitanteId": "dan",
-          "golesLocal": 1,
-          "golesVisitante": 0,
-          "eventos": [
-            { "tipo": "gol", "jugadorId": "pen_viatri" }
-          ]
-        },
-        {
-          "id": "def_nac_f3",
-          "fechaNumero": 3,
-          "fechaCalendario": "2025-09-30",
-          "localId": "def",
-          "visitanteId": "nac",
-          "golesLocal": 1,
-          "golesVisitante": 2,
-          "eventos": [
-            { "tipo": "gol", "jugadorId": "def_cabrera" },
-            { "tipo": "gol", "jugadorId": "nac_suarez" },
-            { "tipo": "gol", "jugadorId": "nac_olivera" }
-          ]
+        "Nacional": {
+          "players": [
+            { "name": "Emiliano Martínez", "goals": 4 },
+            { "name": "Diego Zabala", "goals": 2 }
+          ],
+          "news": ["Nacional entrena pensando en el clásico"]
         }
-      ],
-      "votaciones": {
-        "2025-09-15": {
-          "abre": "2025-09-15T08:00:00-03:00",
-          "cierra": "2025-09-20T23:59:59-03:00",
-          "abierto": true,
-          "votos": [
-            { "usuarioId": "fan1", "jugadorId": "pen_canobbio" },
-            { "usuarioId": "fan2", "jugadorId": "pen_canobbio" },
-            { "usuarioId": "fan3", "jugadorId": "nac_suarez" }
-          ]
-        },
-        "2025-09-22": {
-          "abre": "2025-09-22T08:00:00-03:00",
-          "cierra": "2025-09-27T23:59:59-03:00",
-          "abierto": true,
-          "votos": [
-            { "usuarioId": "fan4", "jugadorId": "nac_suarez" },
-            { "usuarioId": "fan5", "jugadorId": "nac_suarez" },
-            { "usuarioId": "fan6", "jugadorId": "pen_canobbio" }
-          ]
-        },
-        "2025-09-29": {
-          "abre": "2025-09-29T08:00:00-03:00",
-          "cierra": "2025-10-04T23:59:59-03:00",
-          "abierto": true,
-          "votos": [
-            { "usuarioId": "fan7", "jugadorId": "def_cabrera" },
-            { "usuarioId": "fan8", "jugadorId": "nac_olivera" },
-            { "usuarioId": "fan9", "jugadorId": "nac_suarez" }
-          ]
+      },
+      "matches": [
+        {
+          "id": "pen_nac_2025_09_15",
+          "date": "2025-09-15T20:00:00",
+          "home": "Peñarol",
+          "away": "Nacional",
+          "homeGoals": 2,
+          "awayGoals": 1,
+          "scorersHome": ["Agustín Canobbio", "Sebastián Rodríguez"],
+          "scorersAway": ["Emiliano Martínez"],
+          "round": 5
         }
-      }
+      ]
     },
     "B": {
-      "equipos": [
-        { "id": "bri", "nombre": "Bristol" },
-        { "id": "alp", "nombre": "Alto Peru" },
-        { "id": "col", "nombre": "Colon" },
-        { "id": "bel", "nombre": "Bella Vista" }
-      ],
-      "jugadores": [
-        { "id": "bri_morales", "equipoId": "bri", "nombre": "Santiago Morales", "foto": "" },
-        { "id": "bri_gomez", "equipoId": "bri", "nombre": "Juan Gomez", "foto": "" },
-        { "id": "bri_fernandez", "equipoId": "bri", "nombre": "Emanuel Fernandez", "foto": "" },
-        { "id": "alp_perez", "equipoId": "alp", "nombre": "Joaquin Perez", "foto": "" },
-        { "id": "alp_silva", "equipoId": "alp", "nombre": "Matias Silva", "foto": "" },
-        { "id": "alp_cardozo", "equipoId": "alp", "nombre": "Diego Cardozo", "foto": "" },
-        { "id": "col_rodriguez", "equipoId": "col", "nombre": "Nicolas Rodriguez", "foto": "" },
-        { "id": "col_lopez", "equipoId": "col", "nombre": "Damian Lopez", "foto": "" },
-        { "id": "col_ferrer", "equipoId": "col", "nombre": "Ramiro Ferrer", "foto": "" },
-        { "id": "bel_diaz", "equipoId": "bel", "nombre": "Martin Diaz", "foto": "" },
-        { "id": "bel_ramos", "equipoId": "bel", "nombre": "Adrian Ramos", "foto": "" },
-        { "id": "bel_martin", "equipoId": "bel", "nombre": "Bruno Martin", "foto": "" }
-      ],
-      "partidos": [
-        {
-          "id": "bri_alp_f1",
-          "fechaNumero": 1,
-          "fechaCalendario": "2025-09-18",
-          "localId": "bri",
-          "visitanteId": "alp",
-          "golesLocal": 1,
-          "golesVisitante": 0,
-          "eventos": [
-            { "tipo": "gol", "jugadorId": "bri_morales" }
-          ]
-        },
-        {
-          "id": "col_bel_f1",
-          "fechaNumero": 1,
-          "fechaCalendario": "2025-09-19",
-          "localId": "col",
-          "visitanteId": "bel",
-          "golesLocal": 2,
-          "golesVisitante": 2,
-          "eventos": [
-            { "tipo": "gol", "jugadorId": "col_rodriguez" },
-            { "tipo": "gol", "jugadorId": "col_lopez" },
-            { "tipo": "gol", "jugadorId": "bel_diaz" },
-            { "tipo": "gol", "jugadorId": "bel_ramos" }
-          ]
-        },
-        {
-          "id": "alp_col_f2",
-          "fechaNumero": 2,
-          "fechaCalendario": "2025-09-25",
-          "localId": "alp",
-          "visitanteId": "col",
-          "golesLocal": 1,
-          "golesVisitante": 2,
-          "eventos": [
-            { "tipo": "gol", "jugadorId": "alp_silva" },
-            { "tipo": "gol", "jugadorId": "col_lopez" },
-            { "tipo": "gol", "jugadorId": "col_rodriguez" }
-          ]
-        },
-        {
-          "id": "bel_bri_f2",
-          "fechaNumero": 2,
-          "fechaCalendario": "2025-09-26",
-          "localId": "bel",
-          "visitanteId": "bri",
-          "golesLocal": 0,
-          "golesVisitante": 1,
-          "eventos": [
-            { "tipo": "gol", "jugadorId": "bri_gomez" }
-          ]
-        },
-        {
-          "id": "bri_col_f3",
-          "fechaNumero": 3,
-          "fechaCalendario": "2025-09-29",
-          "localId": "bri",
-          "visitanteId": "col",
-          "golesLocal": 2,
-          "golesVisitante": 2,
-          "eventos": [
-            { "tipo": "gol", "jugadorId": "bri_morales" },
-            { "tipo": "gol", "jugadorId": "bri_fernandez" },
-            { "tipo": "gol", "jugadorId": "col_lopez" },
-            { "tipo": "gol", "jugadorId": "col_rodriguez" }
-          ]
-        },
-        {
-          "id": "alp_bel_f3",
-          "fechaNumero": 3,
-          "fechaCalendario": "2025-09-30",
-          "localId": "alp",
-          "visitanteId": "bel",
-          "golesLocal": 1,
-          "golesVisitante": 1,
-          "eventos": [
-            { "tipo": "gol", "jugadorId": "alp_cardozo" },
-            { "tipo": "gol", "jugadorId": "bel_diaz" }
-          ]
-        }
-      ],
-      "votaciones": {
-        "2025-09-18": {
-          "abre": "2025-09-18T08:00:00-03:00",
-          "cierra": "2025-09-23T23:59:59-03:00",
-          "abierto": true,
-          "votos": [
-            { "usuarioId": "hincha1", "jugadorId": "bri_morales" },
-            { "usuarioId": "hincha2", "jugadorId": "col_rodriguez" }
-          ]
-        },
-        "2025-09-25": {
-          "abre": "2025-09-25T08:00:00-03:00",
-          "cierra": "2025-09-30T23:59:59-03:00",
-          "abierto": true,
-          "votos": [
-            { "usuarioId": "hincha3", "jugadorId": "col_lopez" },
-            { "usuarioId": "hincha4", "jugadorId": "bri_gomez" },
-            { "usuarioId": "hincha5", "jugadorId": "col_lopez" }
-          ]
-        },
-        "2025-10-02": {
-          "abre": "2025-10-02T08:00:00-03:00",
-          "cierra": "2025-10-07T23:59:59-03:00",
-          "abierto": true,
-          "votos": [
-            { "usuarioId": "hincha6", "jugadorId": "bri_fernandez" },
-            { "usuarioId": "hincha7", "jugadorId": "alp_cardozo" },
-            { "usuarioId": "hincha8", "jugadorId": "col_rodriguez" }
-          ]
-        }
-      }
+      "teams": {
+        "Defensor": { "players": [{ "name": "Jugador X", "goals": 2 }], "news": ["Defensor suma"] }
+      },
+      "matches": []
     }
   }
 }
