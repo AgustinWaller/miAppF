@@ -21,6 +21,7 @@ import TeamDetailScreen from "./src/screens/TeamDetailScreen";
 import ScoreScreen from "./src/screens/ScoreScreen";
 import LoginScreen from "./src/screens/LoginScreen";
 import LogoutScreen from "./src/screens/LogoutScreen";
+import NewsDetailScreen from "./src/screens/NewsDetailScreen";
 
 
 import { APP_COLORS } from "./src/theme/colors";
@@ -185,6 +186,7 @@ export default function App() {
                   <Stack.Screen name="Main" component={MainDrawer} options={{ headerShown: false }} />
                   <Stack.Screen name="TeamDetail" component={TeamDetailScreen} options={{ title: "Equipo" }} />
                   <Stack.Screen name="ScoreDetail" component={ScoreScreen} options={{ title: "Resultado" }} />
+                  <Stack.Screen name="NewsDetail" component={NewsDetailScreen} options={{ title: "Noticia" }} />
                 </>
               ) : (
                 <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />

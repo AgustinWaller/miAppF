@@ -203,13 +203,15 @@ export default function NewsScreen({ route, navigation }) {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 24 }}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => navigation.navigate("NewsDetail", { news: item })}
+            >
               <Text style={styles.title}>{item.title}</Text>
               <Text style={styles.date}>{item.date_iso}</Text>
               {item.teamName ? <Text style={styles.teamChip}>{item.teamName}</Text> : null}
               {item.image_url ? <Image source={{ uri: item.image_url }} style={styles.image} /> : null}
-              <Text style={styles.body}>{item.body}</Text>
-            </View>
+            </TouchableOpacity>
           )}
           ListEmptyComponent={
             <Text style={styles.empty}>
