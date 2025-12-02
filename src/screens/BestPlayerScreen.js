@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Image, Alert } from "react-native";
-import { collection, doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, doc, getDoc, setDoc, getDocs } from "firebase/firestore";
 
 import { APP_COLORS } from "../theme/colors";
 import { getPlayersByDivision } from "../services/players";
@@ -37,7 +37,15 @@ export default function BestPlayerScreen() {
       if (!selectedTeam || !teamsList.some((team) => team.id === selectedTeam)) {
         setSelectedTeam(teamsList[0]?.id || null);
       }
-      setVotacion(abiertas?.[0] || null);
+      if (abiertas?.[0]?.id) {
+        const votesSnap = await getDocs(
+          collection(doc(db, "votacion", String(abiertas[0].id)), "votes")
+        );
+        const votos = votesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setVotacion({ ...abiertas[0], votos });
+      } else {
+        setVotacion(null);
+      }
     } catch (e) {
       console.error("Error cargando jugadores", e);
       setError(e);

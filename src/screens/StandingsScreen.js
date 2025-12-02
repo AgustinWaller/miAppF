@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: APP_COLORS.cielo,
   },
-  cellTeam: { flex: 3, color: APP_COLORS.texto, paddingRight: 8 },
+  cellTeam: { flex: 3.5, color: APP_COLORS.texto, paddingRight: 8 },
   statCell: {
     width: 36,
     textAlign: "center",

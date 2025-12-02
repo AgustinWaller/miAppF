@@ -15,11 +15,12 @@ import {
   addFavoriteTeam,
   removeFavoriteTeam,
 } from "../utils/favoritesStorage";
-import { getPersistentDeviceId } from "../utils/device";
 import {
   getTeamFavorites,
   setTeamFavorite,
 } from "../services/teamFavorites";
+import { auth } from "../services/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function TeamsScreen({ navigation }) {
   const [division, setDivision] = useState("A");
@@ -28,6 +29,7 @@ export default function TeamsScreen({ navigation }) {
   const [error, setError] = useState("");
   const [favorites, setFavorites] = useState([]);
   const [favoriteCounts, setFavoriteCounts] = useState(new Map());
+  const [userId, setUserId] = useState(null);
 
   const refreshCounts = useCallback(async () => {
     try {
@@ -68,10 +70,20 @@ export default function TeamsScreen({ navigation }) {
       .catch(() => setFavorites([]));
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (usr) => {
+      setUserId(usr?.uid || null);
+    });
+    return unsubscribe;
+  }, []);
+
   const toggleFavorite = useCallback(
     async (team) => {
       try {
-        const deviceId = await getPersistentDeviceId();
+        if (!userId) {
+          Alert.alert("Sesión requerida", "Inicia sesión para elegir tu equipo favorito.");
+          return;
+        }
         const isFavorite = favorites.includes(team.id);
         
         if (!isFavorite && favorites.length > 0 && !favorites.includes(team.id)) {
@@ -88,7 +100,7 @@ export default function TeamsScreen({ navigation }) {
 
           await setTeamFavorite({
             teamId: team.id,
-            userId: deviceId,
+            userId,
             divisionId: division,
             favorite: false,
           });
@@ -98,7 +110,7 @@ export default function TeamsScreen({ navigation }) {
 
           await setTeamFavorite({
             teamId: team.id,
-            userId: deviceId,
+            userId,
             divisionId: division,
             favorite: true,
           });
@@ -109,7 +121,7 @@ export default function TeamsScreen({ navigation }) {
         console.error("toggleFavorite error", e);
       }
     },
-    [favorites, division, refreshCounts]
+    [favorites, division, refreshCounts, userId]
   );
 
 const renderTeam = ({ item }) => {
