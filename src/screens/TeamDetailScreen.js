@@ -1,39 +1,219 @@
-import React, { useMemo } from "react";
-import { View, Text, FlatList, StyleSheet, Image, ActivityIndicator } from "react-native";
-import { useDivisionData } from "../hooks/useDivisionData";
-import { jugadoresPorEquipoFromData } from "../utils/storage";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Text, FlatList, StyleSheet, Image, ActivityIndicator, TouchableOpacity } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { APP_COLORS } from "../theme/colors";
-import { getClubLogo, getPlayerPhoto } from "../assets/images";
 import { safeImage, FALLBACK_TEAM, FALLBACK_PLAYER } from "../utils/images";
+import { getTeamsByDivision } from "../services/teams";
+import { getPlayersByDivision } from "../services/players";
+import { getMatchesByDivision } from "../services/matches";
+import { getNewsByDivision } from "../services/news";
+import { TEAMS_MAP } from "../data/teamsMap";
+
+const normalizeKey = (value) => {
+  const raw = String(value || "");
+  if (typeof raw.normalize === "function") {
+    return raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+  return raw.toLowerCase();
+};
+
+const formatDate = (value) => {
+  if (!value) return "";
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+      return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(
+        parsed.getDate()
+      ).padStart(2, "0")}`;
+    }
+    return value;
+  }
+  try {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(
+      value.getDate()
+    ).padStart(2, "0")}`;
+  } catch {
+    return "";
+  }
+};
+
+const resolveTeamName = (teamId, lookup) => {
+  const normalized = normalizeKey(teamId);
+  const doc = lookup.get(normalized);
+  if (doc) {
+    return (
+      doc.name ||
+      doc.nombre ||
+      doc.teamName ||
+      doc.shortName ||
+      doc.id ||
+      teamId ||
+      "Equipo"
+    );
+  }
+  return TEAMS_MAP[normalized] || TEAMS_MAP[teamId] || teamId || "Equipo";
+};
 
 export default function TeamDetailScreen({ route }) {
   const division = route?.params?.division ?? "A";
   const teamParam = route?.params?.team;
   const teamId = route?.params?.teamId || teamParam?.id;
+  const navigation = useNavigation();
+  const normalizedTeamIdParam = normalizeKey(teamId || teamParam?.id || "");
 
-  const { data, loading, error, refresh } = useDivisionData(division);
+  const [team, setTeam] = useState(teamParam || null);
+  const [players, setPlayers] = useState([]);
+  const [teamMatches, setTeamMatches] = useState([]);
+  const [teamNews, setTeamNews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const team = useMemo(() => {
-    if (!data) return teamParam || null;
-    return (data.equipos || []).find((t) => t.id === teamId) || teamParam || null;
-  }, [data, teamId, teamParam]);
+  useEffect(() => {
+    let isMounted = true;
 
-  const plantilla = useMemo(() => {
-    if (!data) return [];
-    return jugadoresPorEquipoFromData(data, teamId).map((player) => ({
-      ...player,
-      nombre: player.name || player.nombre,
-    }));
-  }, [data, teamId]);
+    const load = async () => {
+      if (!teamId && !teamParam) {
+        setError("Equipo no identificado");
+        setLoading(false);
+        return;
+      }
 
-  // preferimos la URL desde el documento; si no existe, fallback o getClubLogo
-  const teamLogoUri = team?.logoUrl || team?.logoURL || getClubLogo(teamId) || "";
-  const teamLogo = safeImage(teamLogoUri, FALLBACK_TEAM);
+      try {
+        setLoading(true);
+        setError("");
+        const [teamsList, playersList, matchesList, newsList] = await Promise.all([
+          getTeamsByDivision(division),
+          getPlayersByDivision(division),
+          getMatchesByDivision(division),
+          getNewsByDivision(division),
+        ]);
+
+        if (!isMounted) return;
+
+        const normalizedId = normalizedTeamIdParam;
+        const teamsLookup = new Map(teamsList.map((t) => [normalizeKey(t.id), t]));
+        const foundTeam = teamsLookup.get(normalizedId) || teamParam || null;
+        setTeam(foundTeam);
+
+        const playersMap = new Map(playersList.map((p) => [String(p.id), p]));
+        const goalTotals = {};
+
+        matchesList.forEach((match) => {
+          (match.eventos || []).forEach((event) => {
+            const type = String(event.tipo || event.type || "").toLowerCase();
+            if (!type.includes("gol")) return;
+            const pid = String(
+              event.jugadorId ||
+                event.playerId ||
+                event.player ||
+                event.jugador ||
+                ""
+            );
+            if (!pid) return;
+            const player = playersMap.get(pid);
+            if (!player) return;
+            if (normalizeKey(player.teamId) !== normalizedId) return;
+            goalTotals[pid] = (goalTotals[pid] || 0) + 1;
+          });
+        });
+
+        const squad = playersList
+          .filter((p) => normalizeKey(p.teamId) === normalizedId)
+          .map((p) => {
+            const playerIdKey = String(p.id || "");
+            const goals = goalTotals[playerIdKey] || 0;
+            return {
+              ...p,
+              golesTotal: goals,
+            };
+          });
+        setPlayers(squad);
+
+        const matchesForTeam = matchesList
+          .filter(
+            (match) =>
+              normalizeKey(match.localId) === normalizedId ||
+              normalizeKey(match.visitanteId) === normalizedId
+          )
+          .map((match) => {
+            const localDisplay = resolveTeamName(match.localId, teamsLookup);
+            const visitanteDisplay = resolveTeamName(match.visitanteId, teamsLookup);
+            const fechaLabel = match.fechaNumero
+              ? `Fecha ${match.fechaNumero}`
+              : formatDate(match.dateIso);
+            return {
+              ...match,
+              isLocal: normalizeKey(match.localId) === normalizedId,
+              localDisplay,
+              visitanteDisplay,
+              fechaLabel,
+            };
+          })
+          .sort((a, b) => String(a.dateIso).localeCompare(String(b.dateIso)));
+        setTeamMatches(matchesForTeam);
+
+        const teamKeys = [
+          normalizedId,
+          normalizeKey(foundTeam?.id),
+          normalizeKey(foundTeam?.name),
+          normalizeKey(foundTeam?.shortName),
+        ].filter(Boolean);
+
+        const newsForTeam = newsList
+          .filter((news) => {
+            const newsTeam = normalizeKey(news.teamId);
+            if (newsTeam && teamKeys.includes(newsTeam)) return true;
+            const text = `${news.title || ""} ${news.body || ""}`.toLowerCase();
+            return teamKeys.some((key) => key && text.includes(key));
+          })
+          .sort((a, b) => String(b.dateIso || "").localeCompare(String(a.dateIso || "")));
+        setTeamNews(newsForTeam);
+      } catch (err) {
+        console.error("TeamDetail load error:", err);
+        if (isMounted) setError("Error al cargar datos del equipo");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [division, teamId, teamParam]);
+
+  const teamLogo = safeImage(
+    team?.logoUrl || team?.logoURL || team?.logo || "",
+    { uri: FALLBACK_TEAM }
+  );
+
+  const topScorers = useMemo(() => {
+    if (!players.length) return [];
+    return [...players]
+      .map((p) => ({
+        ...p,
+        golesTotal: Number(p.golesTotal ?? p.goles ?? p.goals ?? 0),
+      }))
+      .sort(
+        (a, b) =>
+          b.golesTotal - a.golesTotal ||
+          (a.name || a.nombre || "").localeCompare(b.name || b.nombre || "")
+      )
+      .slice(0, 5);
+  }, [players]);
+
+  const orderedPlayers = useMemo(() => {
+    if (!players.length) return [];
+    return [...players].sort((a, b) =>
+      (a.name || a.nombre || "").localeCompare(b.name || b.nombre || "")
+    );
+  }, [players]);
 
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: "center" }] }>
+      <View style={[styles.container, { justifyContent: "center" }]}>
         <ActivityIndicator size="large" color={APP_COLORS.campo} />
       </View>
     );
@@ -41,72 +221,104 @@ export default function TeamDetailScreen({ route }) {
 
   if (error) {
     return (
-      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }] }>
-        <Text style={styles.empty} onPress={refresh}>
-          Error al cargar. Toca para reintentar.
-        </Text>
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+        <Text style={styles.empty}>{error}</Text>
       </View>
     );
   }
 
-  return (
-  <View style={styles.container}>
+  const listHeader = (
+    <View>
+      <View style={styles.header}>
+        <Image source={teamLogo} style={styles.teamLogo} resizeMode="contain" />
+        <Text style={styles.title}>{team?.name || team?.nombre || "Equipo"}</Text>
+      </View>
 
-    {/* ENCABEZADO DEL EQUIPO */}
-    <View style={styles.header}>
-      <Image
-        source={
-          teamLogoUri
-            ? { uri: teamLogoUri }
-            : require("../../assets/no_team.png")
-        }
-        style={styles.teamLogo}
-        resizeMode="contain"
-      />
-
-      <Text style={styles.title}>
-        {team?.name || team?.nombre || "Equipo"}
-      </Text>
-    </View>
-
-    {/* LISTA DE JUGADORES */}
-    <Text style={styles.subtitle}>Plantel</Text>
-
-    <FlatList
-      data={plantilla}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => {
-        const photo =
-          item?.photoUrl || item?.photoURL
-            ? { uri: item.photoUrl || item.photoURL }
-            : require("../../assets/no_player.png");
-
-        return (
-          <View style={styles.playerRow}>
-            <Image
-              source={photo}
-              style={styles.avatar}
-              resizeMode="cover"
-            />
-
-            <Text style={styles.playerName}>{item.nombre}</Text>
-            <Text style={styles.goals}>{item.goles ?? 0} goles</Text>
+      <Text style={styles.subtitle}>Top 5 goleadores</Text>
+      {topScorers.length ? (
+        topScorers.map((player, index) => (
+          <View key={player.id} style={styles.scorerRow}>
+            <Text style={styles.rank}>{index + 1}</Text>
+            <Text style={styles.scorerName}>{player.name || player.nombre || "Sin nombre"}</Text>
+            <Text style={styles.scorerGoals}>
+              {player.golesTotal} gol{player.golesTotal === 1 ? "" : "es"}
+            </Text>
           </View>
-        );
-      }}
-        ListEmptyComponent={<Text style={styles.empty}>No hay jugadores cargados.</Text>}
-      />
-
-      {team?.news?.length ? (
-        <>
-          <Text style={styles.subtitle}>Noticias</Text>
-          {team.news.map((n, index) => (
-            <Text key={`${team.id}-news-${index}`} style={styles.newsItem}>- {n}</Text>
-          ))}
-        </>
+        ))
       ) : (
-        <Text style={styles.noNews}>No hay noticias disponibles.</Text>
+        <Text style={styles.empty}>Aun no hay goles cargados.</Text>
       )}
+
+      <Text style={styles.subtitle}>Noticias del equipo</Text>
+      {teamNews.length ? (
+        teamNews.map((news) => (
+          <View key={news.id} style={styles.newsCard}>
+            <Text style={styles.newsTitle}>{news.title}</Text>
+            <Text style={styles.newsDate}>{formatDate(news.dateIso || news.date_iso)}</Text>
+            <Text style={styles.newsBody} numberOfLines={3}>
+              {news.body}
+            </Text>
+          </View>
+        ))
+      ) : (
+        <Text style={styles.empty}>No hay noticias disponibles.</Text>
+      )}
+      <TouchableOpacity
+        style={styles.newsButton}
+        onPress={() => navigation.navigate("Noticias", { division, teamFilter: normalizedTeamIdParam })}
+      >
+        <Text style={styles.newsButtonText}>Ver en Noticias</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.subtitle}>Plantel</Text>
+    </View>
+  );
+
+  const listFooter = (
+    <View style={{ marginTop: 20 }}>
+      <Text style={[styles.subtitle, { marginTop: 20 }]}>Partidos disputados</Text>
+      {teamMatches.length ? (
+        teamMatches.map((match) => (
+          <View key={match.id} style={styles.matchRow}>
+            <Text style={styles.matchLabel}>{match.fechaLabel}</Text>
+            <Text style={styles.matchText}>
+              {match.localDisplay} {match.golesLocal ?? "-"} - {match.golesVisitante ?? "-"}{" "}
+              {match.visitanteDisplay}
+            </Text>
+          </View>
+        ))
+      ) : (
+        <Text style={styles.empty}>Este equipo todavía no disputa partidos.</Text>
+      )}
+    </View>
+  );
+
+  const renderPlayer = ({ item }) => {
+    const photo = safeImage(item?.photoUrl || item?.photoURL || "", { uri: FALLBACK_PLAYER });
+    const playerName = item.name || item.nombre || "Sin nombre";
+    const goals = Number(item.golesTotal ?? item.goles ?? 0);
+    return (
+      <View style={styles.playerRow}>
+        <Image source={photo} style={styles.avatar} resizeMode="cover" />
+        <Text style={styles.playerName}>{playerName}</Text>
+        <Text style={styles.goals}>
+          {goals} gol{goals === 1 ? "" : "es"}
+        </Text>
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={orderedPlayers}
+        keyExtractor={(item) => item.id}
+        renderItem={renderPlayer}
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
+        ListEmptyComponent={<Text style={styles.empty}>No hay jugadores cargados.</Text>}
+        contentContainerStyle={{ paddingBottom: 24 }}
+      />
     </View>
   );
 }
@@ -117,6 +329,20 @@ const styles = StyleSheet.create({
   teamLogo: { width: 96, height: 96, resizeMode: "contain", marginBottom: 8 },
   title: { fontSize: 22, fontWeight: "bold", color: APP_COLORS.texto },
   subtitle: { fontSize: 16, marginTop: 16, fontWeight: "700", color: APP_COLORS.texto },
+  scorerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: APP_COLORS.blanco,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#C8E6C9",
+    marginTop: 8,
+  },
+  rank: { width: 24, fontWeight: "700", color: APP_COLORS.campo },
+  scorerName: { flex: 1, fontWeight: "600", color: APP_COLORS.texto },
+  scorerGoals: { fontWeight: "700", color: APP_COLORS.campo },
   playerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -132,7 +358,37 @@ const styles = StyleSheet.create({
   avatar: { width: 48, height: 48, borderRadius: 24, marginRight: 12, backgroundColor: APP_COLORS.cielo },
   playerName: { flex: 1, fontSize: 14, color: APP_COLORS.texto, fontWeight: "600" },
   goals: { fontSize: 14, fontWeight: "700", color: APP_COLORS.campo },
-  newsItem: { fontSize: 14, marginVertical: 2, color: APP_COLORS.texto },
+  newsCard: {
+    backgroundColor: APP_COLORS.blanco,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#C8E6C9",
+    padding: 12,
+    marginTop: 8,
+  },
+  newsTitle: { fontWeight: "700", color: APP_COLORS.texto, marginBottom: 4 },
+  newsDate: { color: APP_COLORS.campo, fontWeight: "600", marginBottom: 4 },
+  newsBody: { color: APP_COLORS.texto, fontSize: 14 },
+  newsButton: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: APP_COLORS.campo,
+  },
+  newsButtonText: { color: APP_COLORS.campo, fontWeight: "700" },
   noNews: { fontSize: 14, fontStyle: "italic", color: "#666", marginTop: 8 },
   empty: { fontSize: 14, fontStyle: "italic", color: "#666", marginTop: 8, textAlign: "center" },
+  matchRow: {
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: APP_COLORS.blanco,
+    borderWidth: 1,
+    borderColor: "#C8E6C9",
+  },
+  matchLabel: { fontWeight: "700", color: APP_COLORS.campo, marginBottom: 4 },
+  matchText: { color: APP_COLORS.texto, fontWeight: "600" },
 });

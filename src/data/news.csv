@@ -1,5 +1,9 @@
-division;date_iso;title;body;image_url
-
-B;2025-09-18;Progreso campeon de la Anual;Campaneon de Progreso que hizo 32 puntos en el año.;https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNWJbvpVW5zE1tYNpCLA1td1U9DDTjUAm5IA&s;
-
-A;2025-11-16;Dale campeon dale campeon.;Campeon el Sanca con Laclo como figura.;https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOvgLfOA8-_toSOoc8Vp9j2JjaWvXmnUaJLQ&s;
+division;team_id;date_iso;title;body;image_url
+# division: Letra de la división donde aplica la noticia.
+# team_id: ID del equipo al que refiere (usa el slug de teams.csv). Dejar vacío si es general.
+# date_iso: Fecha YYYY-MM-DD o ISO8601 que se mostrará publicada.
+# title: Titular corto.
+# body: Descripción larga de la noticia.
+# image_url: (opcional) URL https de la imagen.
+B;progreso;2025-09-18;Progreso campeon de la Anual;Campaneon de Progreso que hizo 32 puntos en el año.;https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNWJbvpVW5zE1tYNpCLA1td1U9DDTjUAm5IA&s;
+A;sancarlos;2025-11-16;Dale campeon dale campeon.;Campeon el Sanca con Laclo como figura.;https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOvgLfOA8-_toSOoc8Vp9j2JjaWvXmnUaJLQ&s;

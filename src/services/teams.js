@@ -1,5 +1,25 @@
 import { db } from "./firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { TEAMS_MAP } from "../data/teamsMap";
+
+const normalizeKey = (value) => {
+  const raw = String(value || "");
+  if (typeof raw.normalize === "function") {
+    return raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+  return raw.toLowerCase();
+};
+
+const fallbackTeamName = (teamId, currentName = "") => {
+  const normalized = normalizeKey(teamId);
+  if (currentName && currentName.trim()) return currentName.trim();
+  return (
+    TEAMS_MAP[normalized] ||
+    TEAMS_MAP[teamId] ||
+    teamId ||
+    "Equipo"
+  );
+};
 
 function normalizeTeam(raw, id) {
   const r = { id, ...raw };
@@ -12,12 +32,15 @@ function normalizeTeam(raw, id) {
       r.division ||
       "A",
 
-    name:
+    name: fallbackTeamName(
+      id,
       r.name ||
-      r.nombre ||
-      r.teamName ||
-      "Sin nombre",
-
+        r.nombre ||
+        r.teamName ||
+        r.Nombre ||
+        r.nombreEquipo ||
+        ""
+    ),
 
     shortName:
       r.shortName ||
@@ -25,16 +48,11 @@ function normalizeTeam(raw, id) {
       r.name ||
       "",
 
-    // Usa en este orden:
-    // 1. logoURL (lo que agregaste en Firestore)
-    // 2. logoUrl
-    // 3. logo
-    // 4. imagen por defecto para evitar que rompa el render
     logoUrl:
       r.logoURL ||
       r.logoUrl ||
       r.logo ||
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/2000px-No_image_available.svg.png"
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/2000px-No_image_available.svg.png",
   };
 }
 

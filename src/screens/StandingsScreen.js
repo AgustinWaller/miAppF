@@ -2,7 +2,27 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
 import { APP_COLORS } from "../theme/colors";
-import { getMatchesByDivision } from "../services/matches"; // <- ya lo tienes
+import { getMatchesByDivision } from "../services/matches";
+import { TEAMS_MAP } from "../data/teamsMap";
+
+const normalizeKey = (value) => {
+  const raw = String(value || "");
+  if (typeof raw.normalize === "function") {
+    return raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+  return raw.toLowerCase();
+};
+
+const TEAM_NAME_LOOKUP = Object.entries(TEAMS_MAP).reduce((acc, [key, value]) => {
+  acc[normalizeKey(key)] = value;
+  return acc;
+}, {});
+
+const resolveTeamName = (teamId, rawName) => {
+  if (rawName) return rawName;
+  const normalized = normalizeKey(teamId);
+  return TEAM_NAME_LOOKUP[normalized] || TEAM_NAME_LOOKUP[teamId] || teamId || "Equipo";
+};
 
 // Util: calcula tabla a partir de la lista de partidos
 function buildTableFromMatches(matches) {
@@ -17,8 +37,8 @@ function buildTableFromMatches(matches) {
   for (const m of matches) {
     // Campos esperados en cada documento:
     // divisionId, dateIso, localId, visitanteId, golesLocal, golesVisitante, (opcional: localName, visitanteName)
-    const L = ensure(m.localId, m.localName || m.localId);
-    const V = ensure(m.visitanteId, m.visitanteName || m.visitanteId);
+    const L = ensure(m.localId, resolveTeamName(m.localId, m.localName));
+    const V = ensure(m.visitanteId, resolveTeamName(m.visitanteId, m.visitanteName));
 
     const gl = Number(m.golesLocal ?? 0);
     const gv = Number(m.golesVisitante ?? 0);
@@ -65,9 +85,11 @@ export default function StandingsScreen() {
   const header = useMemo(() => (
     <View style={[styles.row, styles.header]}>
       <Text style={[styles.cellTeam, styles.bold]}>Equipo</Text>
-      <Text style={[styles.cell, styles.bold]}>PJ</Text>
-      <Text style={[styles.cell, styles.bold]}>PTS</Text>
-      <Text style={[styles.cell, styles.bold]}>DG</Text>
+      <Text style={[styles.statCell, styles.bold]}>PJ</Text>
+      <Text style={[styles.statCell, styles.bold]}>PTS</Text>
+      <Text style={[styles.statCell, styles.bold]}>GF</Text>
+      <Text style={[styles.statCell, styles.bold]}>GC</Text>
+      <Text style={[styles.statCell, styles.bold]}>DG</Text>
     </View>
   ), []);
 
@@ -94,10 +116,14 @@ export default function StandingsScreen() {
           ListHeaderComponent={header}
           renderItem={({ item }) => (
             <View style={styles.row}>
-              <Text style={styles.cellTeam}>{item.name}</Text>
-              <Text style={styles.cell}>{item.pj}</Text>
-              <Text style={styles.cell}>{item.pts}</Text>
-              <Text style={styles.cell}>{item.dg}</Text>
+              <Text style={styles.cellTeam} numberOfLines={1} ellipsizeMode="tail">
+                {item.name}
+              </Text>
+              <Text style={styles.statCell}>{item.pj}</Text>
+              <Text style={styles.statCell}>{item.pts}</Text>
+              <Text style={styles.statCell}>{item.gf}</Text>
+              <Text style={styles.statCell}>{item.gc}</Text>
+              <Text style={styles.statCell}>{item.dg}</Text>
             </View>
           )}
           ListEmptyComponent={<Text style={styles.empty}>Sin datos.</Text>}
@@ -116,9 +142,23 @@ const styles = StyleSheet.create({
   divText: { color: APP_COLORS.texto, fontWeight: "700" },
   divTextActive: { color: APP_COLORS.blanco },
   header: { backgroundColor: APP_COLORS.cielo, borderRadius: 10 },
-  row: { flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: APP_COLORS.cielo },
-  cellTeam: { flex: 1.6, color: APP_COLORS.texto },
-  cell: { width: 48, textAlign: "right", color: APP_COLORS.texto },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: APP_COLORS.cielo,
+  },
+  cellTeam: { flex: 3, color: APP_COLORS.texto, paddingRight: 8 },
+  statCell: {
+    width: 36,
+    textAlign: "center",
+    color: APP_COLORS.texto,
+    fontSize: 13,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: APP_COLORS.cielo,
+  },
   bold: { fontWeight: "700" },
   empty: { textAlign: "center", marginTop: 32, color: APP_COLORS.texto },
 });

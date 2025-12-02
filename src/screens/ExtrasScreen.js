@@ -26,6 +26,40 @@ import { getPlayersByDivision } from "../services/players";
 import { getTeamsByDivision } from "../services/teams";
 import { getOpenVotacionesByDivision } from "../services/votacion";
 import { safeImage, FALLBACK_PLAYER, FALLBACK_TEAM } from "../utils/images";
+import { TEAMS_MAP } from "../data/teamsMap";
+
+const normalizeKey = (value) => {
+  const raw = String(value || "");
+  if (typeof raw.normalize === "function") {
+    return raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+  return raw.toLowerCase();
+};
+
+const TEAM_NAME_LOOKUP = Object.entries(TEAMS_MAP).reduce((acc, [key, value]) => {
+  acc[normalizeKey(key)] = value;
+  return acc;
+}, {});
+
+const resolveTeamName = (teamId, teamDoc) => {
+  if (teamDoc) {
+    return (
+      teamDoc.name ||
+      teamDoc.nombre ||
+      teamDoc.teamName ||
+      teamDoc.shortName ||
+      teamId ||
+      "Equipo"
+    );
+  }
+  const normalized = normalizeKey(teamId);
+  if (TEAM_NAME_LOOKUP[normalized]) return TEAM_NAME_LOOKUP[normalized];
+  const fuzzy = Object.entries(TEAM_NAME_LOOKUP).find(
+    ([key]) => normalized.startsWith(key) || key.startsWith(normalized)
+  );
+  if (fuzzy) return fuzzy[1];
+  return teamId || "Equipo";
+};
 
 /**
  * ExtrasScreen
@@ -82,7 +116,6 @@ export default function ExtrasScreen() {
   const [playerMostVotes, setPlayerMostVotes] = useState(null);
   const [playerYearLeader, setPlayerYearLeader] = useState(null);
   const [teamRanking, setTeamRanking] = useState([]); // TOP 5 equipos más votados (global)
-
   const load = useCallback(async () => {
     try {
       setLoading(true);
@@ -327,34 +360,47 @@ export default function ExtrasScreen() {
       setPlayerYearLeader(vpRankingTop5[0] || null);
 
       //
+      //
       // 4) RANKING DE EQUIPOS MÁS VOTADOS (GLOBAL)
       //
-      // Leemos todos los documentos de teamFavorites (no filtramos por division para ranking global)
+      
+      // A. Traemos los votos de favoritos
       const teamFavSnap = await getDocs(collection(db, "teamFavorites"));
-      const teamFavList = teamFavSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      // Para obtener nombre/logo de cada equipo buscamos en la colección teams (todo)
-      const teamsAllSnap = await getDocs(collection(db, "teams"));
-      const allTeams = teamsAllSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      const allTeamsMap = new Map(allTeams.map((t) => [t.id, t]));
 
-    const rankingTeams = teamFavList
-      .map((fav) => {
-        // SIEMPRE usar fav.teamId como ID REAL DEL EQUIPO
-        const teamId = fav.teamId;
+      // B. Traemos los equipos de la 'A' y la 'B' usando tus servicios existentes
+      // Esto asegura que tengamos los nombres reales aunque estén en divisiones separadas
+      const [teamsDivA, teamsDivB] = await Promise.all([
+        getTeamsByDivision("A"),
+        getTeamsByDivision("B")
+      ]);
+      const allTeamsList = [...teamsDivA, ...teamsDivB];
 
-        const teamDoc = allTeamsMap.get(teamId) || {};
+      // C. Cruzamos la información
+      const rankingTeams = teamFavSnap.docs
+        .map((doc) => {
+          const data = doc.data();
+          const teamId = doc.id; // En tu base de datos, el ID del documento es el ID del equipo (ej: "sancarlos")
+          const normalizedTeamId = normalizeKey(teamId);
 
-      return {
-        id: teamId,
-        nombre: teamDoc.name || teamDoc.nombre || "Equipo sin nombre",
-        logo: safeImage(teamDoc.logoUrl || teamDoc.logoURL || teamDoc.logo || "", FALLBACK_TEAM),
-        votos: Number(fav.count || 0),
-    };
-   })
-    .filter((t) => t.votos > 0)
-    .sort((a, b) => b.votos - a.votos)
-    .slice(0, 5);
+          const teamFound = allTeamsList.find(
+            (t) => normalizeKey(t.id) === normalizedTeamId
+          );
 
+          const teamName = resolveTeamName(teamId, teamFound);
+
+          return {
+            id: teamId,
+            nombre: teamName,
+            logo: safeImage(
+              teamFound?.logoUrl || teamFound?.logoURL || teamFound?.logo || "",
+              FALLBACK_TEAM
+            ),
+            votos: Number(data.count || 0),
+          };
+        })
+      .filter((t) => t.votos > 0) // Opcional: Ocultar los que tienen 0 votos
+      .sort((a, b) => b.votos - a.votos) // Ordenar de mayor a menor
+      .slice(0, 5); // Tomar solo los top 5
 
       setTeamRanking(rankingTeams);
     } catch (err) {
@@ -561,12 +607,34 @@ const styles = StyleSheet.create({
   reloadTxt: { color: APP_COLORS.campo || "#2f7d32", fontWeight: "700" },
   error: { textAlign: "center", color: APP_COLORS.texto || "#333" },
 
-  sectionTitle: { fontSize: 16, fontWeight: "800", color: APP_COLORS.texto || "#333", marginTop: 16, marginBottom: 8 },
-  summaryCard: { backgroundColor: APP_COLORS.blanco || "#fff", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: APP_COLORS.cielo || "#C8E6C9", marginBottom: 8 },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: APP_COLORS.texto || "#333",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  summaryCard: {
+    backgroundColor: APP_COLORS.blanco || "#fff",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: APP_COLORS.cielo || "#C8E6C9",
+    marginBottom: 8,
+  },
   summaryLabel: { fontWeight: "700", color: APP_COLORS.texto || "#333" },
   summaryValue: { color: APP_COLORS.texto || "#333", marginTop: 4 },
 
-  listRow: { flexDirection: "row", alignItems: "center", backgroundColor: APP_COLORS.blanco || "#fff", borderRadius: 12, padding: 10, marginBottom: 6, borderWidth: 1, borderColor: APP_COLORS.cielo || "#C8E6C9" },
+  listRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: APP_COLORS.blanco || "#fff",
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: APP_COLORS.cielo || "#C8E6C9",
+  },
   rank: { width: 28, textAlign: "center", fontWeight: "800", color: APP_COLORS.campo || "#2f7d32" },
   rowName: { fontWeight: "700", color: APP_COLORS.texto || "#333" },
   rowSub: { color: APP_COLORS.texto || "#333" },
@@ -576,7 +644,14 @@ const styles = StyleSheet.create({
 
   empty: { color: APP_COLORS.texto || "#333", textAlign: "center", marginVertical: 12 },
 
-  voteCard: { backgroundColor: APP_COLORS.blanco || "#fff", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: APP_COLORS.cielo || "#C8E6C9", marginBottom: 8 },
+  voteCard: {
+    backgroundColor: APP_COLORS.blanco || "#fff",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: APP_COLORS.cielo || "#C8E6C9",
+    marginBottom: 8,
+  },
   voteDate: { fontWeight: "700", color: APP_COLORS.campo || "#2f7d32", marginBottom: 4 },
   voteWinner: { color: APP_COLORS.texto || "#333" },
 });

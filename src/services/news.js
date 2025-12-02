@@ -6,6 +6,7 @@ function normalizeNews(raw, id) {
   return {
     ...r,
     divisionId: r.divisionId || r.divisionalId || r.division || "A",
+    teamId: r.teamId || r.team_id || r.team || "",
     dateIso: r.dateIso || r.date_iso || r.fecha || null,
     title: r.title || r.titulo || "",
     body: r.body || r.descripcion || "",

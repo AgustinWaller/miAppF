@@ -1,4 +1,7 @@
 division;team_id;name
+# division: Letra de la divisiones (A, B, etc.). Respetar mayúscula.
+# team_id: Identificador corto, en minúsculas y sin espacios. Se usa en documentos y relaciones.
+# name: Nombre completo que se muestra en la app. Usa mayúsculas y tildes correctas.
 A;sancarlos;San Carlos
 A;juventud;Juventud
 A;horqueta;Horqueta Wanderers

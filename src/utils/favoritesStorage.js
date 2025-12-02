@@ -17,7 +17,13 @@ export async function loadFavoriteTeams() {
     if (info.exists) {
       const content = await FileSystem.readAsStringAsync(FAVORITES_FILE);
       const parsed = JSON.parse(content || "[]");
-      cache = Array.isArray(parsed) ? parsed : [];
+      if (Array.isArray(parsed) && parsed.length) {
+        cache = [parsed[0]];
+      } else if (typeof parsed === "string" && parsed) {
+        cache = [parsed];
+      } else {
+        cache = [];
+      }
       return cache;
     }
   } catch {
@@ -37,12 +43,12 @@ async function persistFavoriteTeams(list) {
 }
 
 export async function addFavoriteTeam(teamId) {
+  if (!teamId) return cache || [];
   const current = await loadFavoriteTeams();
-  if (!current.includes(teamId)) {
-    const updated = [...current, teamId];
-    cache = updated;
-    await persistFavoriteTeams(updated);
-  }
+  if (current[0] === teamId) return current;
+  const updated = [teamId];
+  cache = updated;
+  await persistFavoriteTeams(updated);
   return cache;
 }
 

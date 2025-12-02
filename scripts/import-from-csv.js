@@ -61,7 +61,15 @@ function readCsv(fileName) {
     skipEmptyLines: true,
   });
 
-  return data;
+  return data.filter((row) => {
+    if (!row || typeof row !== "object") return false;
+    const firstValue = Object.values(row).find((value) => {
+      const text = (value ?? "").toString().trim();
+      return text.length > 0;
+    });
+    if (!firstValue) return true;
+    return !firstValue.toString().trim().startsWith("#");
+  });
 }
 
 function toNumber(value) {
@@ -113,6 +121,7 @@ async function importNews() {
 
     await db.collection("news").doc(id).set({
       divisionId: (row.division || "").trim(),
+      teamId: (row.team_id || row.teamId || "").trim(),
       dateIso: (row.date_iso || "").trim(),
       title: (row.title || "").trim(),
       body: (row.body || "").trim(),

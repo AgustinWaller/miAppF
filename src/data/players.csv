@@ -1,5 +1,10 @@
 division;player_id;team_id;name;photo_url
-A;sancarlos_laclau;sancarlos;Pablo Laclau;
+# division: Letra A/B según corresponda al equipo del jugador.
+# player_id: ID único en minúscula, sin espacios (aparece en tablas y eventos de goles).
+# team_id: Debe coincidir con un team_id existente en teams.csv.
+# name: Nombre y apellido del jugador tal como se muestra.
+# photo_url: (opcional) URL https de la foto. Dejar vacío si no hay.
+A;sancarlos_laclau;sancarlos;Pablo Laclau;https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQaHwVeOQdHMS7fIfp_fkITeTgobdMNG8WvXsNM6JBdjkTT7s-PfuhoypHtT5EgI6UpXxsg0ofcKOXXQ389GH50N6hSKzUxeyyuJ3P48w&s=10
 A;sancarlos_wilder;sancarlos;Wilder Gottero;
 A;sancarlos_barrotti;sancarlos;Gabriel Barrotti;
 A;sancarlos_castrillo;sancarlos;Damián Castrillo;

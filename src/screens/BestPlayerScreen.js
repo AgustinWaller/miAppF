@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Image, Alert } from "react-native";
-import { collection, doc, addDoc } from "firebase/firestore";
+import { collection, doc, getDoc, setDoc } from "firebase/firestore";
 
 import { APP_COLORS } from "../theme/colors";
 import { getPlayersByDivision } from "../services/players";
@@ -139,7 +139,14 @@ export default function BestPlayerScreen() {
     try {
       setSubmitting(jugadorId);
       const votesCol = collection(doc(db, "votacion", String(votacion.id)), "votes");
-      await addDoc(votesCol, { jugadorId, usuarioId: userId, createdAt: new Date() });
+      const voteDocRef = doc(votesCol, String(userId));
+      const existing = await getDoc(voteDocRef);
+      if (existing.exists()) {
+        Alert.alert("Voto registrado", "Ya emitiste tu voto para esta fecha.");
+        setSubmitting("");
+        return;
+      }
+      await setDoc(voteDocRef, { jugadorId, usuarioId: userId, createdAt: new Date() });
       const abertas = await getOpenVotacionesByDivision(division);
       setVotacion(abertas?.[0] || null);
       Alert.alert("¡Gracias!", "Tu voto fue registrado.");
@@ -309,4 +316,3 @@ const styles = StyleSheet.create({
   votesCount: { marginLeft: 8, fontWeight: "700", color: APP_COLORS.campo },
   empty: { textAlign: "center", marginTop: 32, color: APP_COLORS.texto },
 });
-

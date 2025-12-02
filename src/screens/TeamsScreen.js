@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Image,
+  Alert,
 } from "react-native";
 import { getTeamsByDivision } from "../services/teams";
 import {
@@ -74,6 +74,14 @@ export default function TeamsScreen({ navigation }) {
         const deviceId = await getPersistentDeviceId();
         const isFavorite = favorites.includes(team.id);
         
+        if (!isFavorite && favorites.length > 0 && !favorites.includes(team.id)) {
+          Alert.alert(
+            "Voto único",
+            "Solo podés votar un equipo. Eliminá tu voto actual para elegir otro."
+          );
+          return;
+        }
+
         if (isFavorite) {
           const updated = await removeFavoriteTeam(team.id);
           setFavorites(updated);
@@ -105,15 +113,12 @@ export default function TeamsScreen({ navigation }) {
   );
 
 const renderTeam = ({ item }) => {
-  console.log("TEAM ITEM:", item); // <--- IMPORTANTE PARA VER QUÉ LLEGA
-
   const nombre =
     item?.name ||
     item?.nombre ||
     item?.Nombre ||
-    item?.nombreEquipo ||
     item?.teamName ||
-    "Equipo sin nombre";
+    "Equipo";
 
   const count = favoriteCounts.get(item.id) || 0;
   const isFavorite = favorites.includes(item.id);
@@ -140,7 +145,7 @@ const renderTeam = ({ item }) => {
               isFavorite && styles.favoriteIconActive,
             ]}
           >
-            {isFavorite ? "♥" : "♡"}
+            {isFavorite ? "Favorito" : "Elegir"}
           </Text>
         </TouchableOpacity>
         <Text style={styles.favoriteCount}>{count}</Text>
@@ -237,9 +242,10 @@ const styles = StyleSheet.create({
   teamButton: { flex: 1 },
   teamName: { fontSize: 16, fontWeight: "600" },
   favoriteRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  favoriteIcon: { fontSize: 20, color: "#999" },
+  favoriteIcon: { fontSize: 14, color: "#2f7d32", fontWeight: "700" },
   favoriteIconActive: { color: "#e53935" },
   favoriteCount: { fontSize: 14, color: "#333" },
   empty: { textAlign: "center", marginTop: 24, color: "#333" },
   debug: { color: "#777", marginBottom: 4 },
 });
+
