@@ -1,4 +1,4 @@
-// src/screens/ExtrasScreen.js
+﻿// src/screens/ExtrasScreen.js
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -8,7 +8,9 @@ import {
   ActivityIndicator,
   ScrollView,
   Image,
+  Share,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import {
   collection,
   doc,
@@ -61,19 +63,53 @@ const resolveTeamName = (teamId, teamDoc) => {
   return teamId || "Equipo";
 };
 
+async function shareRanking(title, items) {
+  if (!items?.length) return;
+  const body = items
+    .map((item, idx) => `${idx + 1}. ${item.label || item.nombre} ${item.extra || ""}`.trim())
+    .join("\n");
+  try {
+    await Share.share({
+      title,
+      message: `${title}\n${body}`,
+    });
+  } catch {
+    // ignore
+  }
+}
+
+const SectionHeader = ({ title, onShare }) => (
+  <View style={styles.sectionHeader}>
+    <Text style={[styles.sectionTitle, styles.sectionHeaderTitle]}>{title}</Text>
+    {onShare ? (
+      <TouchableOpacity
+        style={styles.shareButton}
+        onPress={onShare}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Ionicons
+          name="share-social-outline"
+          size={18}
+          color={APP_COLORS.campo || "#2f7d32"}
+        />
+      </TouchableOpacity>
+    ) : null}
+  </View>
+);
+
 /**
  * ExtrasScreen
  *
  * - Lee partidos, jugadores, equipos y votaciones desde Firestore.
- * - Top 5 equipos más votados: usa colección "teamFavorites" (documentos por teamId con campo count).
- * - Top 5 votación actual: votación con abierto === true (por division).
+ * - Top 5 equipos mÃ¡s votados: usa colecciÃ³n "teamFavorites" (documentos por teamId con campo count).
+ * - Top 5 votaciÃ³n actual: votaciÃ³n con abierto === true (por division).
  * - Top 5 votos acumulados: suma de todos los votos en todas las fechas.
- * - Jugador del año: por cada fecha cerrada se suma 1 punto al/los ganador(es).
+ * - Jugador del aÃ±o: por cada fecha cerrada se suma 1 punto al/los ganador(es).
  * - Goleadores: conteo de eventos de tipo "gol" en matches.
- * - Equipo más goleador / más goleado: suma gf/gc por equipo desde matches.
+ * - Equipo mÃ¡s goleador / mÃ¡s goleado: suma gf/gc por equipo desde matches.
  *
  * Nota: asumimos que las colecciones se llaman tal como las mostraste:
- *   - "votacion" -> documentos por fecha -> subcolección "votes"
+ *   - "votacion" -> documentos por fecha -> subcolecciÃ³n "votes"
  *   - "teamFavorites" -> documentos por teamId, con campo count y subcol "votes"
  */
 
@@ -107,15 +143,23 @@ export default function ExtrasScreen() {
 
   // Rankings y datos
   const [scorers, setScorers] = useState([]); // top goleadores
-  const [openVoteRanking, setOpenVoteRanking] = useState([]); // votación abierta (top 5)
+  const [openVoteRanking, setOpenVoteRanking] = useState([]); // votaciÃ³n abierta (top 5)
   const [voteRanking, setVoteRanking] = useState([]); // votos acumulados (top 5)
-  const [vpRanking, setVpRanking] = useState([]); // jugador del año (top)
-  const [recentVotes, setRecentVotes] = useState([]); // últimos ganadores resumen
+  const [vpRanking, setVpRanking] = useState([]); // jugador del aÃ±o (top)
+  const [recentVotes, setRecentVotes] = useState([]); // Ãºltimos ganadores resumen
   const [teamGoalsLeader, setTeamGoalsLeader] = useState(null);
   const [teamConcededLeader, setTeamConcededLeader] = useState(null);
   const [playerMostVotes, setPlayerMostVotes] = useState(null);
   const [playerYearLeader, setPlayerYearLeader] = useState(null);
-  const [teamRanking, setTeamRanking] = useState([]); // TOP 5 equipos más votados (global)
+  const [teamRanking, setTeamRanking] = useState([]); // TOP 5 equipos mÃ¡s votados (global)
+  const getShareHandler = useCallback((title, data, mapFn) => {
+    if (!data?.length) return undefined;
+    return () =>
+      shareRanking(
+        title,
+        data.map((item, idx) => mapFn(item, idx))
+      );
+  }, []);
   const load = useCallback(async () => {
     try {
       setLoading(true);
@@ -125,7 +169,7 @@ export default function ExtrasScreen() {
       const [
         matchesList,
         playersList,
-        teamsListForDiv, // equipos de la división (para mapear equipos de jugadores)
+        teamsListForDiv, // equipos de la divisiÃ³n (para mapear equipos de jugadores)
         voteDocsSnap,
         openVoteDocs,
       ] = await Promise.all([
@@ -147,11 +191,33 @@ export default function ExtrasScreen() {
       // playersMap (por id)
       const playersMap = new Map(playersList.map((p) => [p.id, p]));
       // teamsMap por id (necesario para nombres/logos)
-      // NOTA: getTeamsByDivision trae solo equipos de la división: para logos de jugadores está bien.
+      // NOTA: getTeamsByDivision trae solo equipos de la divisiÃ³n: para logos de jugadores estÃ¡ bien.
       const teamsMap = new Map(teamsListForDiv.map((t) => [t.id, t]));
+      const teamsNormalizedMap = new Map(teamsListForDiv.map((t) => [normalizeKey(t.id), t]));
+      const resolvePlayerTeamName = (player) => {
+        if (!player) return "";
+        const candidateId = player.teamId || player.team || player.equipo || "";
+        const normalized = normalizeKey(candidateId);
+        const teamDoc =
+          teamsMap.get(candidateId) ||
+          teamsNormalizedMap.get(normalized) ||
+          null;
+        const fallback =
+          teamDoc?.name ||
+          teamDoc?.nombre ||
+          TEAM_NAME_LOOKUP[normalized] ||
+          candidateId;
+        return (
+          player.teamName ||
+          player.team ||
+          player.equipo ||
+          fallback ||
+          ""
+        );
+      };
 
       //
-      // 1) EQUIPOS MÁS GOLEADORES / GOLEADOS
+      // 1) EQUIPOS MÃS GOLEADORES / GOLEADOS
       //
       const teamStats = new Map();
       const ensureTeam = (teamId) => {
@@ -229,11 +295,16 @@ export default function ExtrasScreen() {
         .map(([playerId, goals]) => {
           const p = playersMap.get(playerId) || {};
           const teamId = p.teamId || p.team || p.equipo || "";
-          const team = teamsMap.get(teamId) || {};
+          const normalizedTeamId = normalizeKey(teamId);
+          const team =
+            teamsMap.get(teamId) ||
+            teamsNormalizedMap.get(normalizedTeamId) ||
+            {};
+          const teamName = resolvePlayerTeamName(p);
           return {
             id: playerId,
             nombre: p.name || p.nombre || playerId,
-            equipo: p.teamName || p.team || team?.name || "",
+            equipo: teamName,
             goles: goals,
             photo: safeImage(p.photoUrl || p.photoURL || p.photo || "", FALLBACK_PLAYER),
             teamLogo: safeImage(team?.logoUrl || team?.logoURL || "", FALLBACK_TEAM),
@@ -245,17 +316,17 @@ export default function ExtrasScreen() {
       setScorers(scorerRanking);
 
       //
-      // 3) VOTACIONES: abierta (top actual), acumulado (total por jugador), jugador del año (VP)
+      // 3) VOTACIONES: abierta (top actual), acumulado (total por jugador), jugador del aÃ±o (VP)
       //
       const voteDocsMap = new Map();
-      // voteDocsSnap es QuerySnapshot de las últimas 20 por cierra desc (solo de esa division)
+      // voteDocsSnap es QuerySnapshot de las Ãºltimas 20 por cierra desc (solo de esa division)
       voteDocsSnap.docs.forEach((d) => voteDocsMap.set(d.id, { id: d.id, ...d.data() }));
       // openVoteDocs viene del helper getOpenVotacionesByDivision (si existe en tu proyecto)
       openVoteDocs.forEach((d) => voteDocsMap.set(d.id, d));
       const voteDocs = Array.from(voteDocsMap.values());
 
       const voteTotals = {}; // acumulado por jugador (sum of all votes)
-      const vpTotalsLocal = {}; // jugador del año: sum de victorias por fecha cerrada
+      const vpTotalsLocal = {}; // jugador del aÃ±o: sum de victorias por fecha cerrada
       let openVoteRankingLocal = [];
       const recentSummaries = [];
 
@@ -265,7 +336,7 @@ export default function ExtrasScreen() {
           const votesSnap = await getDocs(collection(doc(db, "votacion", voteDoc.id), "votes"));
           const voteCount = votesSnap.docs.reduce((acc, vdoc) => {
             const d = vdoc.data() || {};
-            // votos por jugadorId (varios nombres según tus datos)
+            // votos por jugadorId (varios nombres segÃºn tus datos)
             const pid = d.jugadorId || d.jugador || d.playerId || d.player || "";
             if (!pid) return acc;
             acc[pid] = (acc[pid] || 0) + 1;
@@ -277,15 +348,16 @@ export default function ExtrasScreen() {
             voteTotals[pid] = (voteTotals[pid] || 0) + c;
           });
 
-          // si la votación está abierta -> ranking actual
+          // si la votaciÃ³n estÃ¡ abierta -> ranking actual
           if (voteDoc.abierto === true) {
             openVoteRankingLocal = Object.entries(voteCount)
               .map(([pid, c]) => {
                 const p = playersMap.get(pid);
+                const teamName = resolvePlayerTeamName(p);
                 return {
                   id: pid,
                   nombre: p?.name || p?.nombre || pid,
-                  equipo: p?.teamName || p?.equipo || "",
+                  equipo: teamName,
                   votos: c,
                 };
               })
@@ -293,7 +365,7 @@ export default function ExtrasScreen() {
               .slice(0, 5);
           }
 
-          // si la votación está cerrada -> determinamos ganadores para VP y resumen
+          // si la votaciÃ³n estÃ¡ cerrada -> determinamos ganadores para VP y resumen
           if (voteDoc.abierto !== true && Object.keys(voteCount).length) {
             const maxVotes = Math.max(...Object.values(voteCount));
             const winners = Object.entries(voteCount)
@@ -301,10 +373,11 @@ export default function ExtrasScreen() {
               .map(([pid, c]) => {
                 vpTotalsLocal[pid] = (vpTotalsLocal[pid] || 0) + 1; // +1 punto por victoria en esa fecha (empates cuentan para todos)
                 const p = playersMap.get(pid);
+                const teamName = resolvePlayerTeamName(p);
                 return {
                   id: pid,
                   nombre: p?.name || p?.nombre || pid,
-                  equipo: p?.teamName || p?.equipo || "",
+                  equipo: teamName,
                   votos: c,
                 };
               });
@@ -324,10 +397,11 @@ export default function ExtrasScreen() {
       const voteRankingTop5 = Object.entries(voteTotals || {})
         .map(([pid, votos]) => {
           const p = playersMap.get(pid) || {};
+          const teamName = resolvePlayerTeamName(p);
           return {
             id: pid,
             nombre: p?.name || p?.nombre || pid,
-            equipo: p?.teamName || p?.equipo || "",
+            equipo: teamName,
             votos,
           };
         })
@@ -337,10 +411,11 @@ export default function ExtrasScreen() {
       const vpRankingTop5 = Object.entries(vpTotalsLocal || {})
         .map(([pid, pts]) => {
           const p = playersMap.get(pid) || {};
+          const teamName = resolvePlayerTeamName(p);
           return {
             id: pid,
             nombre: p?.name || p?.nombre || pid,
-            equipo: p?.teamName || p?.equipo || "",
+            equipo: teamName,
             victorias: pts,
           };
         })
@@ -361,21 +436,21 @@ export default function ExtrasScreen() {
 
       //
       //
-      // 4) RANKING DE EQUIPOS MÁS VOTADOS (GLOBAL)
+      // 4) RANKING DE EQUIPOS MÃS VOTADOS (GLOBAL)
       //
       
       // A. Traemos los votos de favoritos
       const teamFavSnap = await getDocs(collection(db, "teamFavorites"));
 
       // B. Traemos los equipos de la 'A' y la 'B' usando tus servicios existentes
-      // Esto asegura que tengamos los nombres reales aunque estén en divisiones separadas
+      // Esto asegura que tengamos los nombres reales aunque estÃ©n en divisiones separadas
       const [teamsDivA, teamsDivB] = await Promise.all([
         getTeamsByDivision("A"),
         getTeamsByDivision("B")
       ]);
       const allTeamsList = [...teamsDivA, ...teamsDivB];
 
-      // C. Cruzamos la información
+      // C. Cruzamos la informaciÃ³n
       const rankingTeams = teamFavSnap.docs
         .map((doc) => {
           const data = doc.data();
@@ -430,19 +505,19 @@ export default function ExtrasScreen() {
   const summaryItems = useMemo(
     () => [
       {
-        label: "Equipo más goleador",
+        label: "Equipo mÃ¡s goleador",
         value: teamGoalsLeader ? `${teamGoalsLeader.nombre} (${teamGoalsLeader.goles} goles)` : "Sin datos",
       },
       {
-        label: "Equipo más goleado",
+        label: "Equipo mÃ¡s goleado",
         value: teamConcededLeader ? `${teamConcededLeader.nombre} (${teamConcededLeader.goles} goles en contra)` : "Sin datos",
       },
       {
-        label: "Jugador con más votos acumulados",
+        label: "Jugador con mÃ¡s votos acumulados",
         value: playerMostVotes ? `${playerMostVotes.nombre}${playerMostVotes.equipo ? ` (${playerMostVotes.equipo})` : ""} - ${playerMostVotes.votos} votos` : "Sin datos",
       },
       {
-        label: "Jugador del año (VP)",
+        label: "Jugador del aÃ±o (VP)",
         value: playerYearLeader ? `${playerYearLeader.nombre}${playerYearLeader.equipo ? ` (${playerYearLeader.equipo})` : ""} - ${playerYearLeader.victorias} VP` : "Sin datos",
       },
     ],
@@ -480,7 +555,17 @@ export default function ExtrasScreen() {
             </View>
           ))}
 
-          <Text style={styles.sectionTitle}>Top 5 Jugador de la fecha (votación actual)</Text>
+          <SectionHeader
+            title="Top 5 Jugador de la fecha (votación actual)"
+            onShare={getShareHandler(
+              "Top 5 Jugador de la fecha (votación actual)",
+              openVoteRanking,
+              (item) => ({
+                label: `${item.nombre}${item.equipo ? ` (${item.equipo})` : ""}`,
+                extra: `${item.votos} votos`,
+              })
+            )}
+          />
           {openVoteRanking.length ? (
             openVoteRanking.map((item, index) => (
               <View key={`open-${item.id}`} style={styles.listRow}>
@@ -493,10 +578,20 @@ export default function ExtrasScreen() {
               </View>
             ))
           ) : (
-            <Text style={styles.empty}>No hay votación abierta.</Text>
+            <Text style={styles.empty}>No hay votaciÃ³n abierta.</Text>
           )}
 
-          <Text style={styles.sectionTitle}>Top 5 Jugador más votado (acumulado)</Text>
+          <SectionHeader
+            title="Top 5 Jugador más votado (acumulado)"
+            onShare={getShareHandler(
+              "Top 5 Jugador más votado (acumulado)",
+              voteRanking,
+              (item) => ({
+                label: `${item.nombre}${item.equipo ? ` (${item.equipo})` : ""}`,
+                extra: `${item.votos} votos`,
+              })
+            )}
+          />
           {voteRanking.length ? (
             voteRanking.map((item, index) => (
               <View key={`votes-${item.id}`} style={styles.listRow}>
@@ -512,7 +607,17 @@ export default function ExtrasScreen() {
             <Text style={styles.empty}>Sin votos registrados.</Text>
           )}
 
-          <Text style={styles.sectionTitle}>Top 5 Jugador del año (VP)</Text>
+          <SectionHeader
+            title="Top 5 Jugador del año (VP)"
+            onShare={getShareHandler(
+              "Top 5 Jugador del año (VP)",
+              vpRanking,
+              (item) => ({
+                label: `${item.nombre}${item.equipo ? ` (${item.equipo})` : ""}`,
+                extra: `${item.victorias} VP`,
+              })
+            )}
+          />
           {vpRanking.length ? (
             vpRanking.map((item, index) => (
               <View key={`vp-${item.id}`} style={styles.listRow}>
@@ -525,10 +630,20 @@ export default function ExtrasScreen() {
               </View>
             ))
           ) : (
-            <Text style={styles.empty}>Sin ganadores todavía.</Text>
+            <Text style={styles.empty}>Sin ganadores todavÃ­a.</Text>
           )}
 
-          <Text style={styles.sectionTitle}>Top 5 Goleadores</Text>
+          <SectionHeader
+            title="Top 5 Goleadores"
+            onShare={getShareHandler(
+              "Top 5 Goleadores",
+              scorers,
+              (item) => ({
+                label: `${item.nombre}${item.equipo ? ` (${item.equipo})` : ""}`,
+                extra: `${item.goles} goles`,
+              })
+            )}
+          />
           {scorers.length ? (
             scorers.map((item, index) => (
               <View key={`scorer-${item.id}`} style={styles.listRow}>
@@ -550,7 +665,17 @@ export default function ExtrasScreen() {
             <Text style={styles.empty}>Sin goles registrados.</Text>
           )}
 
-          <Text style={styles.sectionTitle}>Top 5 Equipos más votados</Text>
+          <SectionHeader
+            title="Top 5 Equipos más votados"
+            onShare={getShareHandler(
+              "Top 5 Equipos más votados",
+              teamRanking,
+              (item) => ({
+                label: item.nombre,
+                extra: `${item.votos} votos`,
+              })
+            )}
+          />
           {teamRanking.length ? (
             teamRanking.map((t, i) => (
               <View key={t.id} style={styles.listRow}>
@@ -563,10 +688,10 @@ export default function ExtrasScreen() {
               </View>
             ))
           ) : (
-            <Text style={styles.empty}>Aún no hay votos registrados.</Text>
+            <Text style={styles.empty}>AÃºn no hay votos registrados.</Text>
           )}
 
-          <Text style={styles.sectionTitle}>Últimos ganadores (Jugador de la fecha)</Text>
+          <Text style={styles.sectionTitle}>Ãšltimos ganadores (Jugador de la fecha)</Text>
           {recentVotes.length ? (
             recentVotes.map((vote) => (
               <View key={`vote-${vote.id}`} style={styles.voteCard}>
@@ -574,13 +699,13 @@ export default function ExtrasScreen() {
                 {vote.winners.map((w) => (
                   <Text key={`${vote.id}-${w.id}`} style={styles.voteWinner}>
                     {w.nombre}
-                    {w.equipo ? ` (${w.equipo})` : ""} — {w.votos} votos
+                    {w.equipo ? ` (${w.equipo})` : ""} â€” {w.votos} votos
                   </Text>
                 ))}
               </View>
             ))
           ) : (
-            <Text style={styles.empty}>Aún no hay votaciones cerradas.</Text>
+            <Text style={styles.empty}>AÃºn no hay votaciones cerradas.</Text>
           )}
         </ScrollView>
       )}
@@ -613,6 +738,25 @@ const styles = StyleSheet.create({
     color: APP_COLORS.texto || "#333",
     marginTop: 16,
     marginBottom: 8,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 16,
+    marginBottom: 8,
+    gap: 12,
+  },
+  sectionHeaderTitle: { marginTop: 0, marginBottom: 0 },
+  shareButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: APP_COLORS.campo || "#2f7d32",
+    backgroundColor: APP_COLORS.blanco || "#fff",
+    alignItems: "center",
+    justifyContent: "center",
   },
   summaryCard: {
     backgroundColor: APP_COLORS.blanco || "#fff",
@@ -655,3 +799,6 @@ const styles = StyleSheet.create({
   voteDate: { fontWeight: "700", color: APP_COLORS.campo || "#2f7d32", marginBottom: 4 },
   voteWinner: { color: APP_COLORS.texto || "#333" },
 });
+
+
+

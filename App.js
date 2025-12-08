@@ -17,6 +17,7 @@ import TopPlayersScreen from "./src/screens/TopPlayersScreen";
 import BestPlayerScreen from "./src/screens/BestPlayerScreen";
 import TeamsScreen from "./src/screens/TeamsScreen";
 import ExtrasScreen from "./src/screens/ExtrasScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
 import TeamDetailScreen from "./src/screens/TeamDetailScreen";
 import ScoreScreen from "./src/screens/ScoreScreen";
 import LoginScreen from "./src/screens/LoginScreen";
@@ -75,6 +76,7 @@ function MainDrawer() {
       <Drawer.Screen name="Jugador de la fecha" component={BestPlayerScreen} initialParams={{ division: "A" }} />
       <Drawer.Screen name="Equipos" component={TeamsScreen} initialParams={{ division: "A" }} />
       <Drawer.Screen name="Resumen" component={ExtrasScreen} initialParams={{ division: "A" }} />
+      <Drawer.Screen name="Perfil" component={ProfileScreen} />
       <Drawer.Screen name="Cerrar sesión" component={LogoutScreen} />
     </Drawer.Navigator>
   );

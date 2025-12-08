@@ -11,7 +11,7 @@ const SERVICE_ACCOUNT_PATH = process.env.FIREBASE_SERVICE_ACCOUNT
   : path.resolve(__dirname, "../serviceAccountKey.json");
 
 if (!fs.existsSync(SERVICE_ACCOUNT_PATH)) {
-  console.error("No se encontró el service account.");
+  console.error("No se encontró el serviceAccountKey.json");
   process.exit(1);
 }
 
@@ -21,11 +21,8 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-/* ---------------------------------------------------------------------------
-   Helper para borrar colecciones completas
---------------------------------------------------------------------------- */
 async function clearCollection(collectionName) {
-  console.log(`🗑️ Borrando colección: ${collectionName}...`);
+  console.log(`>> Borrando colección ${collectionName}...`);
   const batchSize = 300;
 
   async function deleteBatch() {
@@ -35,17 +32,15 @@ async function clearCollection(collectionName) {
     const batch = db.batch();
     snapshot.docs.forEach((doc) => batch.delete(doc.ref));
     await batch.commit();
-
     return true;
   }
 
-  while (await deleteBatch()) {}
-  console.log(`✔️ Colección ${collectionName} borrada.`);
+  while (await deleteBatch()) {
+    // continue
+  }
+  console.log(`>> Colección ${collectionName} borrada.`);
 }
 
-/* ---------------------------------------------------------------------------
-   CSV READER
---------------------------------------------------------------------------- */
 function readCsv(fileName) {
   const filePath = path.join(DATA_DIR, fileName);
   if (!fs.existsSync(filePath)) {
@@ -54,7 +49,6 @@ function readCsv(fileName) {
   }
 
   const content = fs.readFileSync(filePath, "utf8");
-
   const { data } = Papa.parse(content, {
     header: true,
     delimiter: ";",
@@ -75,17 +69,14 @@ function readCsv(fileName) {
 function toNumber(value) {
   if (!value) return 0;
   const n = Number(value);
-  return isNaN(n) ? 0 : n;
+  return Number.isNaN(n) ? 0 : n;
 }
 
-/* ---------------------------------------------------------------------------
-   IMPORT FUNCTIONS
---------------------------------------------------------------------------- */
 async function importTeams() {
   const rows = readCsv("teams.csv");
   console.log(`Importando ${rows.length} equipos...`);
   for (const row of rows) {
-    const id = (row.team_id || row.id)?.trim();
+    const id = (row.team_id || row.id || "").trim();
     if (!id) continue;
     await db.collection("teams").doc(id).set({
       divisionId: (row.division || "").trim(),
@@ -98,7 +89,7 @@ async function importPlayers() {
   const rows = readCsv("players.csv");
   console.log(`Importando ${rows.length} jugadores...`);
   for (const row of rows) {
-    const id = (row.player_id || row.id)?.trim();
+    const id = (row.player_id || row.id || "").trim();
     if (!id) continue;
     await db.collection("players").doc(id).set({
       divisionId: (row.division || "").trim(),
@@ -134,13 +125,15 @@ async function importMatches() {
   const rows = readCsv("matches.csv");
   console.log(`Importando ${rows.length} partidos...`);
   for (const row of rows) {
-    const id = (row.match_id || row.id)?.trim();
+    const id = (row.match_id || row.id || "").trim();
     if (!id) continue;
 
     let events = [];
     try {
       if (row.eventos) events = JSON.parse(row.eventos);
-    } catch {}
+    } catch {
+      events = [];
+    }
 
     await db.collection("matches").doc(id).set({
       divisionId: (row.division || "").trim(),
@@ -155,21 +148,18 @@ async function importMatches() {
   }
 }
 
-/* ---------------------------------------------------------------------------
-   MAIN
---------------------------------------------------------------------------- */
 async function main() {
-  // 🧨 BORRA TODO ANTES DE IMPORTAR
   await clearCollection("news");
   await clearCollection("matches");
+  // === BLOQUE TEMPORAL: limpiar jugadores antes de reimportar ===
+  await clearCollection("players");
 
-  // Luego importa
   await importTeams();
   await importPlayers();
   await importNews();
   await importMatches();
 
-  console.log("🎉 Importación completa.");
+  console.log("Importación completa.");
   process.exit(0);
 }
 

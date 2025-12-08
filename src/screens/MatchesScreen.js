@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from "react-native";
 import { getMatchesByDivision } from "../services/matches";
 import { APP_COLORS } from "../theme/colors";
 import { getPlayersByDivision } from "../services/players";
 import { getTeamsByDivision } from "../services/teams";
+import { safeImage, FALLBACK_TEAM } from "../utils/images";
 
 /** Convierte Timestamp/string a YYYY-MM-DD */
 function fmtDate(x) {
@@ -71,23 +72,33 @@ export default function MatchesScreen({ route, navigation }) {
 
   const teamsMap = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
 
-  const items = useMemo(() => rows.map((m) => {
-    const localId = m.localId || m.local || "";
-    const visitanteId = m.visitanteId || m.visitante || "";
-    const localTeam = teamsMap.get(localId);
-    const visitaTeam = teamsMap.get(visitanteId);
-    return {
-      id: m.id,
-      fecha: fmtDate(m.dateIso || m.date_iso),
-      fechaNumero: m.fechaNumero ?? null,
-      local: localTeam?.name || localTeam?.nombre || localId || "Equipo local",
-      visitante: visitaTeam?.name || visitaTeam?.nombre || visitanteId || "Equipo visitante",
-      gl: typeof m.golesLocal === "number" ? m.golesLocal : Number(m.golesLocal || 0),
-      gv: typeof m.golesVisitante === "number" ? m.golesVisitante : Number(m.golesVisitante || 0),
-      scorersHome: getScorers(m, "local"),
-      scorersAway: getScorers(m, "visitante"),
-    };
-  }), [rows, teamsMap]);
+  const items = useMemo(
+    () =>
+      rows.map((m) => {
+        const localId = m.localId || m.local || "";
+        const visitanteId = m.visitanteId || m.visitante || "";
+        const localTeam = teamsMap.get(localId);
+        const visitaTeam = teamsMap.get(visitanteId);
+        return {
+          id: m.id,
+          fecha: fmtDate(m.dateIso || m.date_iso),
+          fechaNumero: m.fechaNumero ?? null,
+          local: localTeam?.name || localTeam?.nombre || localId || "Equipo local",
+          visitante: visitaTeam?.name || visitaTeam?.nombre || visitanteId || "Equipo visitante",
+          localLogo: safeImage(
+            localTeam?.logoUrl || localTeam?.logoURL || localTeam?.logo || "",
+            { uri: FALLBACK_TEAM }
+          ),
+          visitanteLogo: safeImage(
+            visitaTeam?.logoUrl || visitaTeam?.logoURL || visitaTeam?.logo || "",
+            { uri: FALLBACK_TEAM }
+          ),
+          gl: typeof m.golesLocal === "number" ? m.golesLocal : Number(m.golesLocal || 0),
+          gv: typeof m.golesVisitante === "number" ? m.golesVisitante : Number(m.golesVisitante || 0),
+        };
+      }),
+    [rows, teamsMap]
+  );
 
   const fechas = useMemo(() => {
     const set = new Set();
@@ -169,13 +180,27 @@ export default function MatchesScreen({ route, navigation }) {
                 jugadores: players,
               })}
             >
-              <Text style={styles.date}>{item.fecha}{item.fechaNumero !== null ? ` • Fecha ${item.fechaNumero}` : ""}</Text>
-              <Text style={styles.title}>{item.local} {item.gl} - {item.gv} {item.visitante}</Text>
-              {(item.scorersHome.length || item.scorersAway.length) ? (
-                <Text style={styles.scorers}>
-                  Goles: {item.scorersHome.join(", ") || "-"} vs {item.scorersAway.join(", ") || "-"}
+              <Text style={styles.date}>
+                {item.fecha}
+                {item.fechaNumero !== null ? ` • Fecha ${item.fechaNumero}` : ""}
+              </Text>
+              <View style={styles.matchRow}>
+                <View style={styles.matchTeam}>
+                  <Image source={item.localLogo} style={styles.matchLogo} />
+                  <Text style={styles.matchName} numberOfLines={1}>
+                    {item.local}
+                  </Text>
+                </View>
+                <Text style={styles.matchScore}>
+                  {item.gl} - {item.gv}
                 </Text>
-              ) : null}
+                <View style={[styles.matchTeam, { justifyContent: "flex-end" }]}>
+                  <Text style={[styles.matchName, { textAlign: "right" }]} numberOfLines={1}>
+                    {item.visitante}
+                  </Text>
+                  <Image source={item.visitanteLogo} style={styles.matchLogo} />
+                </View>
+              </View>
             </TouchableOpacity>
           )}
           ListEmptyComponent={<Text style={styles.empty}>No hay partidos para esta selección.</Text>}
@@ -188,10 +213,28 @@ export default function MatchesScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: "#f5f5f5", padding: 12, marginBottom: 8, borderRadius: 8 },
-  title: { fontWeight: "700", fontSize: 16 },
+  card: {
+    backgroundColor: "rgba(3, 50, 102, 0.08)",
+    padding: 12,
+    marginBottom: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(10, 59, 116, 0.3)",
+    shadowColor: "#0a3b74",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+  },
   date: { color: "#2f7d32", marginBottom: 6, fontWeight: "600" },
-  scorers: { marginTop: 4, color: "#444" },
+  matchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  matchTeam: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
+  matchLogo: { width: 36, height: 36, borderRadius: 18, backgroundColor: APP_COLORS.cielo },
+  matchName: { flex: 1, fontWeight: "700", color: APP_COLORS.texto },
+  matchScore: { fontSize: 20, fontWeight: "800", color: APP_COLORS.texto },
   switchRow: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12 },
   divBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: "#2f7d32" },
   activeBtn: { backgroundColor: "#2f7d32" },

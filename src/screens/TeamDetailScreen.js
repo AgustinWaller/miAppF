@@ -63,6 +63,7 @@ export default function TeamDetailScreen({ route }) {
 
   const [team, setTeam] = useState(teamParam || null);
   const [players, setPlayers] = useState([]);
+  const [divisionPlayers, setDivisionPlayers] = useState([]);
   const [teamMatches, setTeamMatches] = useState([]);
   const [teamNews, setTeamNews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +88,8 @@ export default function TeamDetailScreen({ route }) {
           getMatchesByDivision(division),
           getNewsByDivision(division),
         ]);
+
+        setDivisionPlayers(playersList);
 
         if (!isMounted) return;
 
@@ -251,15 +254,20 @@ export default function TeamDetailScreen({ route }) {
 
       <Text style={styles.subtitle}>Noticias del equipo</Text>
       {teamNews.length ? (
-        teamNews.map((news) => (
-          <View key={news.id} style={styles.newsCard}>
-            <Text style={styles.newsTitle}>{news.title}</Text>
-            <Text style={styles.newsDate}>{formatDate(news.dateIso || news.date_iso)}</Text>
-            <Text style={styles.newsBody} numberOfLines={3}>
-              {news.body}
-            </Text>
-          </View>
-        ))
+        teamNews.map((news) => {
+          const imageUrl = news.image_url || news.imageUrl || news.imageURL || "";
+          return (
+            <TouchableOpacity
+              key={news.id}
+              style={styles.newsCard}
+              onPress={() => navigation.navigate("NewsDetail", { news })}
+            >
+              <Text style={styles.newsTitle}>{news.title}</Text>
+              <Text style={styles.newsDate}>{formatDate(news.dateIso || news.date_iso)}</Text>
+              {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.newsImage} /> : null}
+            </TouchableOpacity>
+          );
+        })
       ) : (
         <Text style={styles.empty}>No hay noticias disponibles.</Text>
       )}
@@ -279,13 +287,23 @@ export default function TeamDetailScreen({ route }) {
       <Text style={[styles.subtitle, { marginTop: 20 }]}>Partidos disputados</Text>
       {teamMatches.length ? (
         teamMatches.map((match) => (
-          <View key={match.id} style={styles.matchRow}>
+          <TouchableOpacity
+            key={match.id}
+            style={styles.matchRow}
+            onPress={() =>
+              navigation.navigate("ScoreDetail", {
+                division,
+                match,
+                jugadores: divisionPlayers,
+              })
+            }
+          >
             <Text style={styles.matchLabel}>{match.fechaLabel}</Text>
             <Text style={styles.matchText}>
               {match.localDisplay} {match.golesLocal ?? "-"} - {match.golesVisitante ?? "-"}{" "}
               {match.visitanteDisplay}
             </Text>
-          </View>
+          </TouchableOpacity>
         ))
       ) : (
         <Text style={styles.empty}>Este equipo todavía no disputa partidos.</Text>
@@ -368,7 +386,13 @@ const styles = StyleSheet.create({
   },
   newsTitle: { fontWeight: "700", color: APP_COLORS.texto, marginBottom: 4 },
   newsDate: { color: APP_COLORS.campo, fontWeight: "600", marginBottom: 4 },
-  newsBody: { color: APP_COLORS.texto, fontSize: 14 },
+  newsImage: {
+    width: "100%",
+    height: 160,
+    borderRadius: 12,
+    marginTop: 8,
+    backgroundColor: APP_COLORS.cielo,
+  },
   newsButton: {
     marginTop: 10,
     alignSelf: "flex-start",

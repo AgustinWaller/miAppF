@@ -21,6 +21,52 @@ import {
 } from "../services/teamFavorites";
 import { auth } from "../services/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { TEAMS_MAP } from "../data/teamsMap";
+import { APP_COLORS } from "../theme/colors";
+
+const normalizeKey = (value) => {
+  const raw = String(value || "");
+  if (typeof raw.normalize === "function") {
+    return raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+  return raw.toLowerCase();
+};
+
+const TEAM_NAME_LOOKUP = Object.entries(TEAMS_MAP).reduce((acc, [key, value]) => {
+  acc[normalizeKey(key)] = value;
+  return acc;
+}, {});
+
+const findTeamName = (name) => {
+  if (!name) return "";
+  return TEAM_NAME_LOOKUP[normalizeKey(name)] || "";
+};
+
+const resolveTeamName = (team) => {
+  if (!team) return "Equipo";
+
+  const candidates = [
+    team.name,
+    team.nombre,
+    team.Nombre,
+    team.teamName,
+    team.nombreEquipo,
+    team.shortName,
+    team.sigla,
+    team.id,
+  ].map((value) => (typeof value === "string" ? value.trim() : ""));
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const mapped = findTeamName(candidate);
+    if (mapped) return mapped;
+  }
+
+  const firstNonEmpty = candidates.find((value) => !!value);
+  if (firstNonEmpty) return firstNonEmpty;
+
+  return findTeamName(team.id) || team.id || "Equipo";
+};
 
 export default function TeamsScreen({ navigation }) {
   const [division, setDivision] = useState("A");
@@ -125,12 +171,7 @@ export default function TeamsScreen({ navigation }) {
   );
 
 const renderTeam = ({ item }) => {
-  const nombre =
-    item?.name ||
-    item?.nombre ||
-    item?.Nombre ||
-    item?.teamName ||
-    "Equipo";
+  const nombre = resolveTeamName(item);
 
   const count = favoriteCounts.get(item.id) || 0;
   const isFavorite = favorites.includes(item.id);
@@ -146,7 +187,10 @@ const renderTeam = ({ item }) => {
           })
         }
       >
-        <Text style={styles.teamName}>{nombre}</Text>
+        <View style={styles.teamInfo}>
+          <Text style={styles.teamName}>{nombre}</Text>
+          <Text style={styles.teamDivision}>División {item.divisionId || division}</Text>
+        </View>
       </TouchableOpacity>
 
       <View style={styles.favoriteRow}>
@@ -248,11 +292,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: "#ddd",
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#d0e8d6",
+    backgroundColor: "rgba(13, 71, 29, 0.05)",
+    shadowColor: "#0b5024",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
   },
   teamButton: { flex: 1 },
-  teamName: { fontSize: 16, fontWeight: "600" },
+  teamInfo: { flexDirection: "column" },
+  teamName: { fontSize: 16, fontWeight: "700", color: APP_COLORS.texto },
+  teamDivision: { color: "#5d8f63", fontSize: 12, marginTop: 2 },
   favoriteRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   favoriteIcon: { fontSize: 14, color: "#2f7d32", fontWeight: "700" },
   favoriteIconActive: { color: "#e53935" },

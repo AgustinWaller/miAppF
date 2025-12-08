@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   Switch,
+  Share,
 } from "react-native";
 import { getNewsByDivision } from "../services/news";
 import { APP_COLORS } from "../theme/colors";
@@ -91,6 +92,23 @@ export default function NewsScreen({ route, navigation }) {
   const handleTestNotification = useCallback((key) => {
     const sample = NOTIFICATION_SAMPLE_DATA[key] || {};
     sendNotificationByType(key, sample, { force: true });
+  }, []);
+
+  const shareNewsItem = useCallback((item) => {
+    if (!item) return;
+    const title = item.title || item.titulo || "Noticia";
+    const date = formatDate(item.dateIso || item.date_iso);
+    const teamName = item.teamName || item.team || "";
+    const snippetSource = item.body || item.descripcion || "";
+    const snippet = snippetSource.length > 220 ? `${snippetSource.slice(0, 220)}...` : snippetSource;
+    const meta = [date, teamName].filter(Boolean).join(" • ");
+    const messageParts = [title];
+    if (meta) messageParts.push(meta);
+    if (snippet) messageParts.push(snippet);
+    Share.share({
+      title,
+      message: messageParts.join("\n"),
+    });
   }, []);
 
   const load = useCallback(async () => {
@@ -207,7 +225,20 @@ export default function NewsScreen({ route, navigation }) {
               style={styles.card}
               onPress={() => navigation.navigate("NewsDetail", { news: item })}
             >
-              <Text style={styles.title}>{item.title}</Text>
+              <View style={styles.cardHeader}>
+                <Text style={styles.title} numberOfLines={2}>
+                  {item.title}
+                </Text>
+                <TouchableOpacity
+                  style={styles.cardShareBtn}
+                  onPress={(ev) => {
+                    ev?.stopPropagation?.();
+                    shareNewsItem(item);
+                  }}
+                >
+                  <Text style={styles.cardShareText}>Compartir</Text>
+                </TouchableOpacity>
+              </View>
               <Text style={styles.date}>{item.date_iso}</Text>
               {item.teamName ? <Text style={styles.teamChip}>{item.teamName}</Text> : null}
               {item.image_url ? <Image source={{ uri: item.image_url }} style={styles.image} /> : null}
@@ -302,7 +333,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: APP_COLORS.cielo,
   },
-  title: { fontSize: 18, fontWeight: "700", color: APP_COLORS.texto, marginBottom: 4 },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 6,
+    gap: 10,
+  },
+  cardShareBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: APP_COLORS.campo,
+    backgroundColor: APP_COLORS.blanco,
+  },
+  cardShareText: { fontSize: 12, fontWeight: "700", color: APP_COLORS.campo },
+  title: { flex: 1, fontSize: 18, fontWeight: "700", color: APP_COLORS.texto },
   date: { color: APP_COLORS.campo, marginBottom: 8, fontWeight: "600" },
   teamChip: {
     alignSelf: "flex-start",

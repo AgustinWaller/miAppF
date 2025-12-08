@@ -9,6 +9,15 @@ import { getOpenVotacionesByDivision, listenOpenVotacionByDivision, listenVotesF
 import { db } from "../services/firebase";
 import { getPersistentDeviceId } from "../utils/device";
 import { scheduleVoteReminder, cancelVoteReminder } from "../utils/notifications";
+import { TEAMS_MAP } from "../data/teamsMap";
+
+const normalizeKey = (value) => {
+  const raw = String(value || "");
+  if (typeof raw.normalize === "function") {
+    return raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+  return raw.toLowerCase();
+};
 
 export default function BestPlayerScreen() {
   const [division, setDivision] = useState("A");
@@ -21,31 +30,44 @@ export default function BestPlayerScreen() {
   const [submitting, setSubmitting] = useState("");
   const [userId, setUserId] = useState("anon");
   const reminderRef = useRef({ votacionId: null, notificationId: null });
+  const hydrateVotacion = useCallback(async (voteDoc) => {
+    if (!voteDoc?.id) return voteDoc || null;
+    const votesSnap = await getDocs(
+      collection(doc(db, "votacion", String(voteDoc.id)), "votes")
+    );
+    const votos = votesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return { ...voteDoc, votos };
+  }, []);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const [playersList, teamsList, abiertas] = await Promise.all([
+      const [playersList, teamsList, abertas] = await Promise.all([
         getPlayersByDivision(division, { order: "asc" }),
         getTeamsByDivision(division),
         getOpenVotacionesByDivision(division),
       ]);
       console.log(`[best-player] div=${division} players=${playersList.length} teams=${teamsList.length}`);
-      setPlayers(playersList);
+      const teamLookup = new Map(teamsList.map((team) => [normalizeKey(team.id), team]));
+      const playersWithTeam = playersList.map((player) => {
+        const normalized = normalizeKey(player.teamId);
+        const teamDoc = teamLookup.get(normalized);
+        const teamName =
+          player.teamName ||
+          teamDoc?.name ||
+          TEAMS_MAP[normalized] ||
+          player.teamId ||
+          "";
+        return { ...player, teamName };
+      });
+      setPlayers(playersWithTeam);
       setTeams(teamsList);
       if (!selectedTeam || !teamsList.some((team) => team.id === selectedTeam)) {
         setSelectedTeam(teamsList[0]?.id || null);
       }
-      if (abiertas?.[0]?.id) {
-        const votesSnap = await getDocs(
-          collection(doc(db, "votacion", String(abiertas[0].id)), "votes")
-        );
-        const votos = votesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setVotacion({ ...abiertas[0], votos });
-      } else {
-        setVotacion(null);
-      }
+      const activeVotacion = abertas && abertas[0] ? await hydrateVotacion(abertas[0]) : null;
+      setVotacion(activeVotacion);
     } catch (e) {
       console.error("Error cargando jugadores", e);
       setError(e);
@@ -54,7 +76,7 @@ export default function BestPlayerScreen() {
     } finally {
       setLoading(false);
     }
-  }, [division, selectedTeam]);
+  }, [division, selectedTeam, hydrateVotacion]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -156,8 +178,8 @@ export default function BestPlayerScreen() {
       }
       await setDoc(voteDocRef, { jugadorId, usuarioId: userId, createdAt: new Date() });
       const abertas = await getOpenVotacionesByDivision(division);
-      setVotacion(abertas?.[0] || null);
-      Alert.alert("¡Gracias!", "Tu voto fue registrado.");
+      const updated = abertas && abertas[0] ? await hydrateVotacion(abertas[0]) : null;
+      setVotacion(updated);
     } catch (e) {
       console.error("submitVote error", e);
       Alert.alert("Error", "No se pudo registrar el voto.");
