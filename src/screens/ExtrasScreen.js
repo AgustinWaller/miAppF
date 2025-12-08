@@ -759,14 +759,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   summaryCard: {
-    backgroundColor: APP_COLORS.blanco || "#fff",
+    backgroundColor: "rgba(4,44,99,0.08)",
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: APP_COLORS.cielo || "#C8E6C9",
+    borderColor: "rgba(4,44,99,0.25)",
     marginBottom: 8,
   },
-  summaryLabel: { fontWeight: "700", color: APP_COLORS.texto || "#333" },
+  summaryLabel: { fontWeight: "700", color: "#0a356a" },
   summaryValue: { color: APP_COLORS.texto || "#333", marginTop: 4 },
 
   listRow: {

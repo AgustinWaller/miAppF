@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -23,10 +23,19 @@ import { listenMatchComments, addMatchComment } from "../services/comments";
 import { safeImage, FALLBACK_PLAYER, FALLBACK_TEAM } from "../utils/images";
 import { getTeamsByDivision } from "../services/teams";
 
+const normalizeKey = (value) => {
+  const raw = String(value || "");
+  if (typeof raw.normalize === "function") {
+    return raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+  return raw.toLowerCase();
+};
+
 export default function ScoreScreen({ route, navigation }) {
   const division = route?.params?.division ?? "A";
   const match = route?.params?.match;
   const jugadores = route?.params?.jugadores || [];
+
   const [user, setUser] = useState(() => auth.currentUser);
   const [profile, setProfile] = useState(null);
   const [comments, setComments] = useState([]);
@@ -35,6 +44,7 @@ export default function ScoreScreen({ route, navigation }) {
   const [teamDocs, setTeamDocs] = useState([]);
   const shareCardRef = useRef(null);
   const [sharing, setSharing] = useState(false);
+
   const appName = Constants.expoConfig?.name || "MiAppF";
   const shareLink = Constants.expoConfig?.extra?.shareLink || "https://miappf.com";
 
@@ -44,35 +54,26 @@ export default function ScoreScreen({ route, navigation }) {
     );
   }, [jugadores]);
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (usr) => setUser(usr));
-    return unsub;
-  }, []);
+  useEffect(() => onAuthStateChanged(auth, setUser), []);
 
   useEffect(() => {
     if (!user?.uid) {
       setProfile(null);
       return;
     }
-    const unsub = listenProfile(user.uid, (doc) => setProfile(doc));
-    return unsub;
+    return listenProfile(user.uid, (doc) => setProfile(doc));
   }, [user?.uid]);
 
   useEffect(() => {
     if (!match?.id) return;
-    const unsub = listenMatchComments(match.id, (rows) => setComments(rows));
-    return unsub;
+    return listenMatchComments(match.id, (rows) => setComments(rows));
   }, [match?.id]);
 
   useEffect(() => {
     let mounted = true;
     getTeamsByDivision(division)
-      .then((docs) => {
-        if (mounted) setTeamDocs(docs || []);
-      })
-      .catch(() => {
-        if (mounted) setTeamDocs([]);
-      });
+      .then((docs) => mounted && setTeamDocs(docs || []))
+      .catch(() => mounted && setTeamDocs([]));
     return () => {
       mounted = false;
     };
@@ -95,14 +96,6 @@ export default function ScoreScreen({ route, navigation }) {
       </View>
     );
   }
-
-  const normalizeKey = (value) => {
-    const raw = String(value || "");
-    if (typeof raw.normalize === "function") {
-      return raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    }
-    return raw.toLowerCase();
-  };
 
   const teamsLookup = useMemo(() => {
     const map = new Map();
@@ -128,6 +121,7 @@ export default function ScoreScreen({ route, navigation }) {
   const local = localDoc?.name || localDoc?.nombre || match.localName || match.local || "";
   const visitante =
     visitanteDoc?.name || visitanteDoc?.nombre || match.visitanteName || match.visitante || "";
+
   const localLogo = safeImage(
     localDoc?.logoUrl || localDoc?.logoURL || localDoc?.logo || "",
     { uri: FALLBACK_TEAM }
@@ -137,18 +131,37 @@ export default function ScoreScreen({ route, navigation }) {
     { uri: FALLBACK_TEAM }
   );
 
+  const localKeywords = useMemo(
+    () =>
+      [match.localName, match.local, match.localId, localDoc?.name, localDoc?.shortName]
+        .map((value) => normalizeKey(value))
+        .filter(Boolean),
+    [match.localName, match.local, match.localId, localDoc]
+  );
+
+  const visitanteKeywords = useMemo(
+    () =>
+      [
+        match.visitanteName,
+        match.visitante,
+        match.visitanteId,
+        visitanteDoc?.name,
+        visitanteDoc?.shortName,
+      ]
+        .map((value) => normalizeKey(value))
+        .filter(Boolean),
+    [match.visitanteName, match.visitante, match.visitanteId, visitanteDoc]
+  );
+
   const getNombreJugador = (jugadorId) => playerMap.get(jugadorId) || jugadorId;
-  const commentAvatar = safeImage(profile?.photoUrl || user?.photoURL || "", { uri: FALLBACK_PLAYER });
+  const commentAvatar = safeImage(profile?.photoUrl || user?.photoURL || "", {
+    uri: FALLBACK_PLAYER,
+  });
 
   const formatCommentDate = (value) => {
     if (!value) return "";
-    let date;
-    if (value?.toDate) {
-      date = value.toDate();
-    } else {
-      date = new Date(value);
-    }
-    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+    const date = value?.toDate ? value.toDate() : new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, "0");
     const dd = String(date.getDate()).padStart(2, "0");
@@ -161,7 +174,7 @@ export default function ScoreScreen({ route, navigation }) {
     const body = commentText.trim();
     if (!body) return;
     if (!match?.id || !user?.uid) {
-      Alert.alert("SesiÃ³n requerida", "Inicia sesiÃ³n nuevamente para comentar.");
+      Alert.alert("Sesion requerida", "Inicia sesion nuevamente para comentar.");
       return;
     }
     setSending(true);
@@ -279,7 +292,7 @@ export default function ScoreScreen({ route, navigation }) {
           </View>
         ))
       ) : (
-        <Text style={styles.empty}>TodavÃ­a no hay comentarios. Â¡SÃ© el primero!</Text>
+        <Text style={styles.empty}>Todavia no hay comentarios. Se el primero!</Text>
       )}
 
       <View style={styles.commentComposer}>
@@ -314,7 +327,7 @@ export default function ScoreScreen({ route, navigation }) {
     </View>
   );
 
-  const handleShareScore = async () => {
+  async function handleShareScore() {
     if (!shareCardRef.current) return;
     try {
       setSharing(true);
@@ -323,21 +336,18 @@ export default function ScoreScreen({ route, navigation }) {
         quality: 0.92,
         result: "tmpfile",
       });
-      const message = `${appName} ·  ${local} ${match.golesLocal ?? "-"} - ${
-        match.golesVisitante ?? "-"
-      } ${visitante}\n${shareLink}`;
+      const message = `${appName} - ${local} ${match.golesLocal ?? "-"} - ${match.golesVisitante ?? "-"} ${visitante}\n${shareLink}`;
       await Share.share({
         title: `${local} vs ${visitante}`,
         message,
         url: uri,
       });
     } catch (err) {
-      console.error("share score", err);
       Alert.alert("Error", "No pudimos compartir el resultado.");
     } finally {
       setSharing(false);
     }
-  };
+  }
 
   return (
     <View style={styles.container}>
@@ -347,56 +357,65 @@ export default function ScoreScreen({ route, navigation }) {
         contentContainerStyle={{ paddingBottom: 32 }}
         ListHeaderComponent={headerComponent}
         ListFooterComponent={footerComponent}
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => {
           const type = String(item.tipo || "");
           const isGoal = type.toLowerCase().includes("gol");
-          const teamKey = normalizeKey(
-            item.teamId ||
-              item.team ||
-              item.equipo ||
-              (item.golLocal === true
-                ? match.localId
-                : item.golVisitante === true
-                ? match.visitanteId
-                : "")
-          );
-          const isLocalEvent =
-            teamKey && teamKey !== " "
-              ? teamKey === normalizeKey(match.localId) ||
-                teamKey === normalizeKey(match.localName)
-              : item.golLocal === true;
+
+          let teamKey = normalizeKey(item.teamId || item.team || item.equipo || "");
+          if (!teamKey && type) {
+            const lower = type.toLowerCase();
+            if (localKeywords.some((token) => token && lower.includes(token))) {
+              teamKey = "local";
+            } else if (visitanteKeywords.some((token) => token && lower.includes(token))) {
+              teamKey = "visitante";
+            }
+          }
+
+          let teamSide = null;
+          if (teamKey) {
+            if (localKeywords.includes(teamKey)) teamSide = "local";
+            else if (visitanteKeywords.includes(teamKey)) teamSide = "visitante";
+          }
+          if (!teamSide) {
+            if (item.golLocal === true) teamSide = "local";
+            else if (item.golVisitante === true) teamSide = "visitante";
+          }
+
           const minute = item.minuto || item.minute || item.time || "";
 
-          if (isGoal) {
+          if (isGoal && (teamSide === "local" || teamSide === "visitante")) {
+            const isLocalEvent = teamSide === "local";
             return (
-      <LinearGradient
-        colors={isLocalEvent ? ["#1B5E20", "#2E7D32"] : ["#0B4FA7", "#082D63"]}
-        start={{ x: isLocalEvent ? 0 : 1, y: 0 }}
-        end={{ x: isLocalEvent ? 1 : 0, y: 0 }}
-        style={[
-          styles.goalRow,
-          isLocalEvent ? styles.goalRowLeft : styles.goalRowRight,
-        ]}
-      >
-        {isLocalEvent ? (
-          <>
-            <Ionicons name="football" size={20} color="#fff" style={styles.goalIconLeft} />
-            <View style={styles.goalInfo}>
-              <Text style={styles.goalPlayer}>{getNombreJugador(item.jugadorId)}</Text>
-              {minute ? <Text style={styles.goalMinute}>{minute}'</Text> : null}
-            </View>
-          </>
-        ) : (
-          <>
-            <View style={[styles.goalInfo, styles.goalInfoRight]}>
-              <Text style={[styles.goalPlayer, styles.goalPlayerRight]}>
-                {getNombreJugador(item.jugadorId)}
-              </Text>
-              {minute ? <Text style={styles.goalMinute}>{minute}'</Text> : null}
-            </View>
-            <Ionicons name="football" size={20} color="#fff" style={styles.goalIconRight} />
-          </>
-        )}
+              <LinearGradient
+                colors={isLocalEvent ? ["#1B5E20", "#2E7D32"] : ["#0B4FA7", "#082D63"]}
+                start={{ x: isLocalEvent ? 0 : 1, y: 0 }}
+                end={{ x: isLocalEvent ? 1 : 0, y: 0 }}
+                style={[
+                  styles.goalRow,
+                  isLocalEvent ? styles.goalRowLeft : styles.goalRowRight,
+                ]}
+              >
+                {isLocalEvent ? (
+                  <>
+                    <Ionicons name="football" size={20} color="#fff" style={styles.goalIconLeft} />
+                    <View style={styles.goalInfo}>
+                      <Text style={styles.goalPlayer}>{getNombreJugador(item.jugadorId)}</Text>
+                      {minute ? <Text style={styles.goalMinute}>{minute}'</Text> : null}
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <View style={[styles.goalInfo, styles.goalInfoRight]}>
+                      <Text style={[styles.goalPlayer, styles.goalPlayerRight]}>
+                        {getNombreJugador(item.jugadorId)}
+                      </Text>
+                      {minute ? <Text style={styles.goalMinute}>{minute}'</Text> : null}
+                    </View>
+                    <Ionicons name="football" size={20} color="#fff" style={styles.goalIconRight} />
+                  </>
+                )}
               </LinearGradient>
             );
           }
@@ -474,7 +493,17 @@ const styles = StyleSheet.create({
   eventsBannerTeam: { color: "#fff", fontWeight: "700", fontSize: 14, flex: 1, textAlign: "center" },
   eventsBannerDivider: { width: 1, height: 24, backgroundColor: "rgba(255,255,255,0.5)" },
   subtitle: { fontSize: 16, fontWeight: "700", marginBottom: 8, marginTop: 12, color: APP_COLORS.texto },
-  eventRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 0.5, borderColor: "#C8E6C9", backgroundColor: APP_COLORS.blanco, borderRadius: 12, marginBottom: 8 },
+  eventRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 0.5,
+    borderColor: "#C8E6C9",
+    backgroundColor: APP_COLORS.blanco,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
   eventType: { fontWeight: "700", color: APP_COLORS.campo },
   eventInfo: { color: APP_COLORS.texto },
   goalRow: {
@@ -548,5 +577,3 @@ const styles = StyleSheet.create({
   commentButtonText: { color: "#fff", fontWeight: "700" },
   commentLegal: { fontSize: 12, color: "#607d8b", textAlign: "center" },
 });
-
-

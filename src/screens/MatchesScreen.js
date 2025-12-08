@@ -173,37 +173,46 @@ export default function MatchesScreen({ route, navigation }) {
           contentContainerStyle={{ padding: 16 }}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={styles.card}
-              onPress={() => navigation.navigate("ScoreDetail", {
-                division,
-                match: rows.find((m) => m.id === item.id) || item,
-                jugadores: players,
-              })}
+              style={styles.cardWrapper}
+              onPress={() =>
+                navigation.navigate("ScoreDetail", {
+                  division,
+                  match: rows.find((m) => m.id === item.id) || item,
+                  jugadores: players,
+                })
+              }
             >
-              <Text style={styles.date}>
-                {item.fecha}
-                {item.fechaNumero !== null ? ` • Fecha ${item.fechaNumero}` : ""}
-              </Text>
-              <View style={styles.matchRow}>
-                <View style={styles.matchTeam}>
-                  <Image source={item.localLogo} style={styles.matchLogo} />
-                  <Text style={styles.matchName} numberOfLines={1}>
-                    {item.local}
-                  </Text>
-                </View>
-                <Text style={styles.matchScore}>
-                  {item.gl} - {item.gv}
+              <LinearGradient
+                colors={["#042C63", "#0B4FA7"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.card}
+              >
+                <Text style={styles.date}>
+                  {item.fecha}
+                  {item.fechaNumero !== null ? ` • Fecha ${item.fechaNumero}` : ""}
                 </Text>
-                <View style={[styles.matchTeam, { justifyContent: "flex-end" }]}>
-                  <Text style={[styles.matchName, { textAlign: "right" }]} numberOfLines={1}>
-                    {item.visitante}
+                <View style={styles.matchRow}>
+                  <View style={styles.matchTeam}>
+                    <Image source={item.localLogo} style={styles.matchLogo} />
+                    <Text style={[styles.matchName, { textAlign: "left" }]} numberOfLines={1}>
+                      {item.local}
+                    </Text>
+                  </View>
+                  <Text style={styles.matchScore}>
+                    {item.gl} - {item.gv}
                   </Text>
-                  <Image source={item.visitanteLogo} style={styles.matchLogo} />
+                  <View style={[styles.matchTeam, { justifyContent: "flex-end" }]}>
+                    <Text style={[styles.matchName, { textAlign: "right" }]} numberOfLines={1}>
+                      {item.visitante}
+                    </Text>
+                    <Image source={item.visitanteLogo} style={styles.matchLogo} />
+                  </View>
                 </View>
-              </View>
+              </LinearGradient>
             </TouchableOpacity>
           )}
-          ListEmptyComponent={<Text style={styles.empty}>No hay partidos para esta selección.</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>No hay partidos para esta seleccion.</Text>}
           onRefresh={load}
           refreshing={loading}
         />
@@ -213,18 +222,12 @@ export default function MatchesScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  cardWrapper: { marginBottom: 12, borderRadius: 18, overflow: "hidden", shadowColor: "#0a3b74", shadowOpacity: 0.15, shadowRadius: 8 },
   card: {
-    backgroundColor: "rgba(3, 50, 102, 0.08)",
-    padding: 12,
-    marginBottom: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(10, 59, 116, 0.3)",
-    shadowColor: "#0a3b74",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    padding: 14,
+    borderRadius: 18,
   },
-  date: { color: "#2f7d32", marginBottom: 6, fontWeight: "600" },
+  date: { color: "#d4e3ff", marginBottom: 6, fontWeight: "600" },
   matchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -232,9 +235,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   matchTeam: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
-  matchLogo: { width: 36, height: 36, borderRadius: 18, backgroundColor: APP_COLORS.cielo },
-  matchName: { flex: 1, fontWeight: "700", color: APP_COLORS.texto },
-  matchScore: { fontSize: 20, fontWeight: "800", color: APP_COLORS.texto },
+  matchLogo: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.25)" },
+  matchName: { flex: 1, fontWeight: "700", color: "#fff" },
+  matchScore: { fontSize: 20, fontWeight: "800", color: "#fff" },
   switchRow: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12 },
   divBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: "#2f7d32" },
   activeBtn: { backgroundColor: "#2f7d32" },
@@ -251,3 +254,4 @@ const styles = StyleSheet.create({
   fechaTxtActive: { color: APP_COLORS.blanco },
   stats: { color: APP_COLORS.texto, marginHorizontal: 16, marginBottom: 8, fontWeight: "600" },
 });
+

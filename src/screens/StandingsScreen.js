@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Image,
   Share,
+  ScrollView,
 } from "react-native";
 import { APP_COLORS } from "../theme/colors";
 import { getMatchesByDivision } from "../services/matches";
@@ -197,21 +198,25 @@ export default function StandingsScreen() {
       ) : (
         <View style={styles.tableCard}>
           <Text style={styles.tableTitle}>Tabla de posiciones</Text>
-          <View style={styles.headerRow}>
-            <Text style={[styles.headerCell, styles.headerTeam]}>Equipo</Text>
-            {["PJ", "PG", "PE", "PP", "GF", "GC", "DG", "PTS"].map((label) => (
-              <Text key={label} style={styles.headerCell}>
-                {label}
-              </Text>
-            ))}
-          </View>
-          <FlatList
-            data={rows}
-            keyExtractor={(r) => r.teamId}
-            renderItem={renderRow}
-            ListEmptyComponent={<Text style={styles.empty}>Sin datos.</Text>}
-            contentContainerStyle={{ paddingBottom: 24 }}
-          />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.tableInner}>
+              <View style={styles.headerRow}>
+                <Text style={[styles.headerCell, styles.headerTeam]}>Equipo</Text>
+                {["PJ", "PG", "PE", "PP", "GF", "GC", "DG", "PTS"].map((label) => (
+                  <Text key={label} style={styles.headerCell}>
+                    {label}
+                  </Text>
+                ))}
+              </View>
+              <FlatList
+                data={rows}
+                keyExtractor={(r) => r.teamId}
+                renderItem={renderRow}
+                ListEmptyComponent={<Text style={styles.empty}>Sin datos.</Text>}
+                contentContainerStyle={{ paddingBottom: 24 }}
+              />
+            </View>
+          </ScrollView>
         </View>
       )}
     </View>
@@ -252,6 +257,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
   },
+  tableInner: { paddingRight: 16, minWidth: 600 },
   tableTitle: {
     textAlign: "center",
     color: APP_COLORS.texto,
