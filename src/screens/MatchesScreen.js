@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+﻿import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { getMatchesByDivision } from "../services/matches";
 import { APP_COLORS } from "../theme/colors";
 import { getPlayersByDivision } from "../services/players";
@@ -129,7 +130,7 @@ export default function MatchesScreen({ route, navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      <Text style={styles.debug}>División {division} • Partidos: {items.length}</Text>
+      <Text style={styles.debug}>Division {division} | Partidos: {items.length}</Text>
 
       <View style={styles.switchRow}>
         {["A", "B"].map((d) => (
@@ -160,7 +161,7 @@ export default function MatchesScreen({ route, navigation }) {
         ))}
       </View>
 
-      <Text style={styles.stats}>Partidos: {stats.matches} • Goles totales: {stats.goles}</Text>
+      <Text style={styles.stats}>Partidos: {stats.matches} | Goles totales: {stats.goles}</Text>
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 16 }} />
@@ -190,7 +191,7 @@ export default function MatchesScreen({ route, navigation }) {
               >
                 <Text style={styles.date}>
                   {item.fecha}
-                  {item.fechaNumero !== null ? ` • Fecha ${item.fechaNumero}` : ""}
+                  {item.fechaNumero !== null ? ` | Fecha ${item.fechaNumero}` : ""}
                 </Text>
                 <View style={styles.matchRow}>
                   <View style={styles.matchTeam}>
@@ -254,4 +255,7 @@ const styles = StyleSheet.create({
   fechaTxtActive: { color: APP_COLORS.blanco },
   stats: { color: APP_COLORS.texto, marginHorizontal: 16, marginBottom: 8, fontWeight: "600" },
 });
+
+
+
 

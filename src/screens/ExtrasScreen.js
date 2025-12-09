@@ -1,4 +1,4 @@
-﻿// src/screens/ExtrasScreen.js
+// src/screens/ExtrasScreen.js
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -10,6 +10,7 @@ import {
   Image,
   Share,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import {
   collection,
@@ -78,38 +79,42 @@ async function shareRanking(title, items) {
   }
 }
 
-const SectionHeader = ({ title, onShare }) => (
-  <View style={styles.sectionHeader}>
-    <Text style={[styles.sectionTitle, styles.sectionHeaderTitle]}>{title}</Text>
-    {onShare ? (
-      <TouchableOpacity
-        style={styles.shareButton}
-        onPress={onShare}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Ionicons
-          name="share-social-outline"
-          size={18}
-          color={APP_COLORS.campo || "#2f7d32"}
-        />
-      </TouchableOpacity>
-    ) : null}
-  </View>
+const BlueSection = ({ title, onShare, children }) => (
+  <LinearGradient
+    colors={["#042C63", "#0B4FA7"]}
+    start={{ x: 0, y: 0 }}
+    end={{ x: 1, y: 1 }}
+    style={styles.sectionCard}
+  >
+    <View style={styles.sectionCardHeader}>
+      <Text style={styles.sectionCardTitle}>{title}</Text>
+      {onShare ? (
+        <TouchableOpacity
+          style={styles.sectionCardShare}
+          onPress={onShare}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="share-social-outline" size={18} color="#fff" />
+        </TouchableOpacity>
+      ) : null}
+    </View>
+    <View style={styles.sectionCardBody}>{children}</View>
+  </LinearGradient>
 );
 
 /**
  * ExtrasScreen
  *
  * - Lee partidos, jugadores, equipos y votaciones desde Firestore.
- * - Top 5 equipos mÃ¡s votados: usa colecciÃ³n "teamFavorites" (documentos por teamId con campo count).
- * - Top 5 votaciÃ³n actual: votaciÃ³n con abierto === true (por division).
+ * - Top 5 equipos mas votados: usa coleccion "teamFavorites" (documentos por teamId con campo count).
+ * - Top 5 votacion actual: votacion con abierto === true (por division).
  * - Top 5 votos acumulados: suma de todos los votos en todas las fechas.
- * - Jugador del aÃ±o: por cada fecha cerrada se suma 1 punto al/los ganador(es).
+ * - Jugador del año: por cada fecha cerrada se suma 1 punto al/los ganador(es).
  * - Goleadores: conteo de eventos de tipo "gol" en matches.
- * - Equipo mÃ¡s goleador / mÃ¡s goleado: suma gf/gc por equipo desde matches.
+ * - Equipo mas goleador / mas goleado: suma gf/gc por equipo desde matches.
  *
  * Nota: asumimos que las colecciones se llaman tal como las mostraste:
- *   - "votacion" -> documentos por fecha -> subcolecciÃ³n "votes"
+ *   - "votacion" -> documentos por fecha -> subcoleccion "votes"
  *   - "teamFavorites" -> documentos por teamId, con campo count y subcol "votes"
  */
 
@@ -143,15 +148,15 @@ export default function ExtrasScreen() {
 
   // Rankings y datos
   const [scorers, setScorers] = useState([]); // top goleadores
-  const [openVoteRanking, setOpenVoteRanking] = useState([]); // votaciÃ³n abierta (top 5)
+  const [openVoteRanking, setOpenVoteRanking] = useState([]); // votacion abierta (top 5)
   const [voteRanking, setVoteRanking] = useState([]); // votos acumulados (top 5)
-  const [vpRanking, setVpRanking] = useState([]); // jugador del aÃ±o (top)
-  const [recentVotes, setRecentVotes] = useState([]); // Ãºltimos ganadores resumen
+  const [vpRanking, setVpRanking] = useState([]); // jugador del año (top)
+  const [recentVotes, setRecentVotes] = useState([]); // ultimos ganadores resumen
   const [teamGoalsLeader, setTeamGoalsLeader] = useState(null);
   const [teamConcededLeader, setTeamConcededLeader] = useState(null);
   const [playerMostVotes, setPlayerMostVotes] = useState(null);
   const [playerYearLeader, setPlayerYearLeader] = useState(null);
-  const [teamRanking, setTeamRanking] = useState([]); // TOP 5 equipos mÃ¡s votados (global)
+  const [teamRanking, setTeamRanking] = useState([]); // TOP 5 equipos mas votados (global)
   const getShareHandler = useCallback((title, data, mapFn) => {
     if (!data?.length) return undefined;
     return () =>
@@ -169,8 +174,8 @@ export default function ExtrasScreen() {
       const [
         matchesList,
         playersList,
-        teamsListForDiv, // equipos de la divisiÃ³n (para mapear equipos de jugadores)
-        voteDocsSnap,
+        teamsListForDiv, // equipos de la division (para mapear equipos de jugadores)
+        voteDocsSnap, // votaciones historicas (query snapshot)
         openVoteDocs,
       ] = await Promise.all([
         getMatchesByDivision(division),
@@ -191,33 +196,38 @@ export default function ExtrasScreen() {
       // playersMap (por id)
       const playersMap = new Map(playersList.map((p) => [p.id, p]));
       // teamsMap por id (necesario para nombres/logos)
-      // NOTA: getTeamsByDivision trae solo equipos de la divisiÃ³n: para logos de jugadores estÃ¡ bien.
+      // NOTA: getTeamsByDivision trae solo equipos de la division: para logos de jugadores esta bien.
       const teamsMap = new Map(teamsListForDiv.map((t) => [t.id, t]));
       const teamsNormalizedMap = new Map(teamsListForDiv.map((t) => [normalizeKey(t.id), t]));
-      const resolvePlayerTeamName = (player) => {
-        if (!player) return "";
+      const getTeamDocForId = (teamId) => {
+        if (!teamId) return null;
+        return teamsMap.get(teamId) || teamsNormalizedMap.get(normalizeKey(teamId)) || null;
+      };
+      const resolvePlayerTeamData = (player) => {
+        if (!player) return { name: "", logo: safeImage("", FALLBACK_TEAM) };
         const candidateId = player.teamId || player.team || player.equipo || "";
         const normalized = normalizeKey(candidateId);
-        const teamDoc =
-          teamsMap.get(candidateId) ||
-          teamsNormalizedMap.get(normalized) ||
-          null;
+        const teamDoc = getTeamDocForId(candidateId);
         const fallback =
           teamDoc?.name ||
           teamDoc?.nombre ||
           TEAM_NAME_LOOKUP[normalized] ||
           candidateId;
-        return (
+        const name =
           player.teamName ||
           player.team ||
           player.equipo ||
           fallback ||
-          ""
+          "";
+        const logo = safeImage(
+          teamDoc?.logoUrl || teamDoc?.logoURL || teamDoc?.logo || "",
+          FALLBACK_TEAM
         );
+        return { name, logo };
       };
 
       //
-      // 1) EQUIPOS MÃS GOLEADORES / GOLEADOS
+      // 1) EQUIPOS MAS GOLEADORES / GOLEADOS
       //
       const teamStats = new Map();
       const ensureTeam = (teamId) => {
@@ -294,20 +304,14 @@ export default function ExtrasScreen() {
       const scorerRanking = Object.entries(scorerTotals)
         .map(([playerId, goals]) => {
           const p = playersMap.get(playerId) || {};
-          const teamId = p.teamId || p.team || p.equipo || "";
-          const normalizedTeamId = normalizeKey(teamId);
-          const team =
-            teamsMap.get(teamId) ||
-            teamsNormalizedMap.get(normalizedTeamId) ||
-            {};
-          const teamName = resolvePlayerTeamName(p);
+          const teamData = resolvePlayerTeamData(p);
           return {
             id: playerId,
             nombre: p.name || p.nombre || playerId,
-            equipo: teamName,
+            equipo: teamData.name,
             goles: goals,
             photo: safeImage(p.photoUrl || p.photoURL || p.photo || "", FALLBACK_PLAYER),
-            teamLogo: safeImage(team?.logoUrl || team?.logoURL || "", FALLBACK_TEAM),
+            teamLogo: teamData.logo,
           };
         })
         .sort((a, b) => b.goles - a.goles || a.nombre.localeCompare(b.nombre))
@@ -316,17 +320,21 @@ export default function ExtrasScreen() {
       setScorers(scorerRanking);
 
       //
-      // 3) VOTACIONES: abierta (top actual), acumulado (total por jugador), jugador del aÃ±o (VP)
+      // 3) VOTACIONES: abierta (top actual), acumulado (total por jugador), jugador del año (VP)
       //
       const voteDocsMap = new Map();
-      // voteDocsSnap es QuerySnapshot de las Ãºltimas 20 por cierra desc (solo de esa division)
-      voteDocsSnap.docs.forEach((d) => voteDocsMap.set(d.id, { id: d.id, ...d.data() }));
+      // voteDocsSnap es QuerySnapshot de las ultimas 20 por cierra desc (solo de esa division)
+      voteDocsSnap?.docs?.forEach((snap) => {
+        voteDocsMap.set(snap.id, { id: snap.id, ...snap.data() });
+      });
       // openVoteDocs viene del helper getOpenVotacionesByDivision (si existe en tu proyecto)
-      openVoteDocs.forEach((d) => voteDocsMap.set(d.id, d));
+      (openVoteDocs || []).forEach((docItem) => {
+        voteDocsMap.set(docItem.id, docItem);
+      });
       const voteDocs = Array.from(voteDocsMap.values());
 
       const voteTotals = {}; // acumulado por jugador (sum of all votes)
-      const vpTotalsLocal = {}; // jugador del aÃ±o: sum de victorias por fecha cerrada
+      const vpTotalsLocal = {}; // jugador del año: sum de victorias por fecha cerrada
       let openVoteRankingLocal = [];
       const recentSummaries = [];
 
@@ -336,7 +344,7 @@ export default function ExtrasScreen() {
           const votesSnap = await getDocs(collection(doc(db, "votacion", voteDoc.id), "votes"));
           const voteCount = votesSnap.docs.reduce((acc, vdoc) => {
             const d = vdoc.data() || {};
-            // votos por jugadorId (varios nombres segÃºn tus datos)
+            // votos por jugadorId (varios nombres segun tus datos)
             const pid = d.jugadorId || d.jugador || d.playerId || d.player || "";
             if (!pid) return acc;
             acc[pid] = (acc[pid] || 0) + 1;
@@ -348,24 +356,25 @@ export default function ExtrasScreen() {
             voteTotals[pid] = (voteTotals[pid] || 0) + c;
           });
 
-          // si la votaciÃ³n estÃ¡ abierta -> ranking actual
+          // si la votacion esta abierta -> ranking actual
           if (voteDoc.abierto === true) {
             openVoteRankingLocal = Object.entries(voteCount)
               .map(([pid, c]) => {
                 const p = playersMap.get(pid);
-                const teamName = resolvePlayerTeamName(p);
+                const teamData = resolvePlayerTeamData(p);
                 return {
                   id: pid,
                   nombre: p?.name || p?.nombre || pid,
-                  equipo: teamName,
+                  equipo: teamData.name,
                   votos: c,
+                  teamLogo: teamData.logo,
                 };
               })
               .sort((a, b) => b.votos - a.votos || a.nombre.localeCompare(b.nombre))
               .slice(0, 5);
           }
 
-          // si la votaciÃ³n estÃ¡ cerrada -> determinamos ganadores para VP y resumen
+          // si la votacion esta cerrada -> determinamos ganadores para VP y resumen
           if (voteDoc.abierto !== true && Object.keys(voteCount).length) {
             const maxVotes = Math.max(...Object.values(voteCount));
             const winners = Object.entries(voteCount)
@@ -373,12 +382,13 @@ export default function ExtrasScreen() {
               .map(([pid, c]) => {
                 vpTotalsLocal[pid] = (vpTotalsLocal[pid] || 0) + 1; // +1 punto por victoria en esa fecha (empates cuentan para todos)
                 const p = playersMap.get(pid);
-                const teamName = resolvePlayerTeamName(p);
+                const teamData = resolvePlayerTeamData(p);
                 return {
                   id: pid,
                   nombre: p?.name || p?.nombre || pid,
-                  equipo: teamName,
+                  equipo: teamData.name,
                   votos: c,
+                  teamLogo: teamData.logo,
                 };
               });
 
@@ -397,12 +407,13 @@ export default function ExtrasScreen() {
       const voteRankingTop5 = Object.entries(voteTotals || {})
         .map(([pid, votos]) => {
           const p = playersMap.get(pid) || {};
-          const teamName = resolvePlayerTeamName(p);
+          const teamData = resolvePlayerTeamData(p);
           return {
             id: pid,
             nombre: p?.name || p?.nombre || pid,
-            equipo: teamName,
+            equipo: teamData.name,
             votos,
+            teamLogo: teamData.logo,
           };
         })
         .sort((a, b) => b.votos - a.votos || a.nombre.localeCompare(b.nombre))
@@ -411,12 +422,13 @@ export default function ExtrasScreen() {
       const vpRankingTop5 = Object.entries(vpTotalsLocal || {})
         .map(([pid, pts]) => {
           const p = playersMap.get(pid) || {};
-          const teamName = resolvePlayerTeamName(p);
+          const teamData = resolvePlayerTeamData(p);
           return {
             id: pid,
             nombre: p?.name || p?.nombre || pid,
-            equipo: teamName,
+            equipo: teamData.name,
             victorias: pts,
+            teamLogo: teamData.logo,
           };
         })
         .sort((a, b) => b.victorias - a.victorias || a.nombre.localeCompare(b.nombre))
@@ -428,29 +440,29 @@ export default function ExtrasScreen() {
         return db - da;
       });
 
+      setRecentVotes(recentSummaries.slice(0, 5));
       setVoteRanking(voteRankingTop5);
       setVpRanking(vpRankingTop5);
-      setRecentVotes(recentSummaries.slice(0, 5));
       setPlayerMostVotes(voteRankingTop5[0] || null);
       setPlayerYearLeader(vpRankingTop5[0] || null);
 
       //
       //
-      // 4) RANKING DE EQUIPOS MÃS VOTADOS (GLOBAL)
+      // 4) RANKING DE EQUIPOS MAS VOTADOS (GLOBAL)
       //
       
       // A. Traemos los votos de favoritos
       const teamFavSnap = await getDocs(collection(db, "teamFavorites"));
 
       // B. Traemos los equipos de la 'A' y la 'B' usando tus servicios existentes
-      // Esto asegura que tengamos los nombres reales aunque estÃ©n en divisiones separadas
+      // Esto asegura que tengamos los nombres reales aunque esten en divisiones separadas
       const [teamsDivA, teamsDivB] = await Promise.all([
         getTeamsByDivision("A"),
         getTeamsByDivision("B")
       ]);
       const allTeamsList = [...teamsDivA, ...teamsDivB];
 
-      // C. Cruzamos la informaciÃ³n
+      // C. Cruzamos la informacion
       const rankingTeams = teamFavSnap.docs
         .map((doc) => {
           const data = doc.data();
@@ -466,7 +478,7 @@ export default function ExtrasScreen() {
           return {
             id: teamId,
             nombre: teamName,
-            logo: safeImage(
+            teamLogo: safeImage(
               teamFound?.logoUrl || teamFound?.logoURL || teamFound?.logo || "",
               FALLBACK_TEAM
             ),
@@ -505,19 +517,19 @@ export default function ExtrasScreen() {
   const summaryItems = useMemo(
     () => [
       {
-        label: "Equipo mÃ¡s goleador",
+        label: "Equipo mas goleador",
         value: teamGoalsLeader ? `${teamGoalsLeader.nombre} (${teamGoalsLeader.goles} goles)` : "Sin datos",
       },
       {
-        label: "Equipo mÃ¡s goleado",
+        label: "Equipo mas goleado",
         value: teamConcededLeader ? `${teamConcededLeader.nombre} (${teamConcededLeader.goles} goles en contra)` : "Sin datos",
       },
       {
-        label: "Jugador con mÃ¡s votos acumulados",
+        label: "Jugador con mas votos acumulados",
         value: playerMostVotes ? `${playerMostVotes.nombre}${playerMostVotes.equipo ? ` (${playerMostVotes.equipo})` : ""} - ${playerMostVotes.votos} votos` : "Sin datos",
       },
       {
-        label: "Jugador del aÃ±o (VP)",
+        label: "Jugador del año (VP)",
         value: playerYearLeader ? `${playerYearLeader.nombre}${playerYearLeader.equipo ? ` (${playerYearLeader.equipo})` : ""} - ${playerYearLeader.victorias} VP` : "Sin datos",
       },
     ],
@@ -547,67 +559,76 @@ export default function ExtrasScreen() {
         <Text style={styles.error} onPress={load}>{error}. Toca para reintentar.</Text>
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-          <Text style={styles.sectionTitle}>Resumen</Text>
-          {summaryItems.map((item) => (
-            <View key={item.label} style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>{item.label}</Text>
-              <Text style={styles.summaryValue}>{item.value}</Text>
-            </View>
-          ))}
+          <BlueSection title="Resumen de tabla">
+            {summaryItems.map((item) => (
+              <View key={item.label} style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>{item.label}</Text>
+                <Text style={styles.summaryValue}>{item.value}</Text>
+              </View>
+            ))}
+          </BlueSection>
 
-          <SectionHeader
-            title="Top 5 Jugador de la fecha (votación actual)"
+          <BlueSection
+            title="Top 5 Jugador de la fecha (votacion actual)"
             onShare={getShareHandler(
-              "Top 5 Jugador de la fecha (votación actual)",
+              "Top 5 Jugador de la fecha (votacion actual)",
               openVoteRanking,
               (item) => ({
                 label: `${item.nombre}${item.equipo ? ` (${item.equipo})` : ""}`,
                 extra: `${item.votos} votos`,
               })
             )}
-          />
-          {openVoteRanking.length ? (
-            openVoteRanking.map((item, index) => (
-              <View key={`open-${item.id}`} style={styles.listRow}>
-                <Text style={styles.rank}>{index + 1}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.rowName}>{item.nombre}</Text>
-                  {!!item.equipo && <Text style={styles.rowSub}>{item.equipo}</Text>}
+          >
+            {openVoteRanking.length ? (
+              openVoteRanking.map((item, index) => (
+                <View key={`open-${item.id}`} style={styles.listRow}>
+                  <Text style={styles.rank}>{index + 1}</Text>
+                  <View style={styles.listPlayerInfo}>
+                    <Image source={item.teamLogo} style={styles.listLogo} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.rowName}>{item.nombre}</Text>
+                      {!!item.equipo && <Text style={styles.rowSub}>{item.equipo}</Text>}
+                    </View>
+                  </View>
+                  <Text style={styles.rowValue}>{item.votos} votos</Text>
                 </View>
-                <Text style={styles.rowValue}>{item.votos} votos</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.empty}>No hay votaciÃ³n abierta.</Text>
-          )}
+              ))
+            ) : (
+              <Text style={styles.empty}>No hay votacion abierta.</Text>
+            )}
+          </BlueSection>
 
-          <SectionHeader
-            title="Top 5 Jugador más votado (acumulado)"
+          <BlueSection
+            title="Top 5 Jugador mas votado (acumulado)"
             onShare={getShareHandler(
-              "Top 5 Jugador más votado (acumulado)",
+              "Top 5 Jugador mas votado (acumulado)",
               voteRanking,
               (item) => ({
                 label: `${item.nombre}${item.equipo ? ` (${item.equipo})` : ""}`,
                 extra: `${item.votos} votos`,
               })
             )}
-          />
-          {voteRanking.length ? (
-            voteRanking.map((item, index) => (
-              <View key={`votes-${item.id}`} style={styles.listRow}>
-                <Text style={styles.rank}>{index + 1}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.rowName}>{item.nombre}</Text>
-                  {!!item.equipo && <Text style={styles.rowSub}>{item.equipo}</Text>}
+          >
+            {voteRanking.length ? (
+              voteRanking.map((item, index) => (
+                <View key={`votes-${item.id}`} style={styles.listRow}>
+                  <Text style={styles.rank}>{index + 1}</Text>
+                  <View style={styles.listPlayerInfo}>
+                    <Image source={item.teamLogo} style={styles.listLogo} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.rowName}>{item.nombre}</Text>
+                      {!!item.equipo && <Text style={styles.rowSub}>{item.equipo}</Text>}
+                    </View>
+                  </View>
+                  <Text style={styles.rowValue}>{item.votos} votos</Text>
                 </View>
-                <Text style={styles.rowValue}>{item.votos} votos</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.empty}>Sin votos registrados.</Text>
-          )}
+              ))
+            ) : (
+              <Text style={styles.empty}>Sin votos registrados.</Text>
+            )}
+          </BlueSection>
 
-          <SectionHeader
+          <BlueSection
             title="Top 5 Jugador del año (VP)"
             onShare={getShareHandler(
               "Top 5 Jugador del año (VP)",
@@ -617,23 +638,27 @@ export default function ExtrasScreen() {
                 extra: `${item.victorias} VP`,
               })
             )}
-          />
-          {vpRanking.length ? (
-            vpRanking.map((item, index) => (
-              <View key={`vp-${item.id}`} style={styles.listRow}>
-                <Text style={styles.rank}>{index + 1}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.rowName}>{item.nombre}</Text>
-                  {!!item.equipo && <Text style={styles.rowSub}>{item.equipo}</Text>}
+          >
+            {vpRanking.length ? (
+              vpRanking.map((item, index) => (
+                <View key={`vp-${item.id}`} style={styles.listRow}>
+                  <Text style={styles.rank}>{index + 1}</Text>
+                  <View style={styles.listPlayerInfo}>
+                    <Image source={item.teamLogo} style={styles.listLogo} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.rowName}>{item.nombre}</Text>
+                      {!!item.equipo && <Text style={styles.rowSub}>{item.equipo}</Text>}
+                    </View>
+                  </View>
+                  <Text style={styles.rowValue}>{item.victorias} VP</Text>
                 </View>
-                <Text style={styles.rowValue}>{item.victorias} VP</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.empty}>Sin ganadores todavÃ­a.</Text>
-          )}
+              ))
+            ) : (
+              <Text style={styles.empty}>Sin ganadores todavia.</Text>
+            )}
+          </BlueSection>
 
-          <SectionHeader
+          <BlueSection
             title="Top 5 Goleadores"
             onShare={getShareHandler(
               "Top 5 Goleadores",
@@ -643,70 +668,81 @@ export default function ExtrasScreen() {
                 extra: `${item.goles} goles`,
               })
             )}
-          />
-          {scorers.length ? (
-            scorers.map((item, index) => (
-              <View key={`scorer-${item.id}`} style={styles.listRow}>
-                <Text style={styles.rank}>{index + 1}</Text>
-                <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-                  <Image source={item.photo} style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.rowName}>{item.nombre}</Text>
-                    {!!item.equipo && <Text style={styles.rowSub}>{item.equipo}</Text>}
+          >
+            {scorers.length ? (
+              scorers.map((item, index) => (
+                <View key={`scorer-${item.id}`} style={styles.listRow}>
+                  <Text style={styles.rank}>{index + 1}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", flex: 1, gap: 10 }}>
+                    <Image source={item.photo} style={styles.playerAvatar} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.rowName}>{item.nombre}</Text>
+                      {!!item.equipo && <Text style={styles.rowSub}>{item.equipo}</Text>}
+                    </View>
+                  </View>
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Text style={styles.rowValue}>{item.goles} goles</Text>
+                    {item.teamLogo ? (
+                      <Image source={item.teamLogo} style={styles.miniLogo} />
+                    ) : null}
                   </View>
                 </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.rowValue}>{item.goles} goles</Text>
-                  {item.teamLogo && <Image source={item.teamLogo} style={{ width: 24, height: 24, marginTop: 6 }} />}
-                </View>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.empty}>Sin goles registrados.</Text>
-          )}
+              ))
+            ) : (
+              <Text style={styles.empty}>Sin goles registrados.</Text>
+            )}
+          </BlueSection>
 
-          <SectionHeader
-            title="Top 5 Equipos más votados"
+          <BlueSection
+            title="Top 5 Equipos mas votados"
             onShare={getShareHandler(
-              "Top 5 Equipos más votados",
+              "Top 5 Equipos mas votados",
               teamRanking,
               (item) => ({
                 label: item.nombre,
                 extra: `${item.votos} votos`,
               })
             )}
-          />
-          {teamRanking.length ? (
-            teamRanking.map((t, i) => (
-              <View key={t.id} style={styles.listRow}>
-                <Text style={styles.rank}>{i + 1}</Text>
-                <View style={{ flexDirection: "row", flex: 1, alignItems: "center" }}>
-                  <Image source={t.logo} style={styles.teamLogo} />
-                  <Text style={styles.rowName}>{t.nombre}</Text>
+          >
+            {teamRanking.length ? (
+              teamRanking.map((t, i) => (
+                <View key={t.id} style={styles.listRow}>
+                  <Text style={styles.rank}>{i + 1}</Text>
+                  <View style={styles.listPlayerInfo}>
+                    <Image source={t.teamLogo} style={styles.teamLogo} />
+                    <Text style={styles.rowName}>{t.nombre}</Text>
+                  </View>
+                  <Text style={styles.rowValue}>{t.votos} votos</Text>
                 </View>
-                <Text style={styles.rowValue}>{t.votos} votos</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.empty}>AÃºn no hay votos registrados.</Text>
-          )}
+              ))
+            ) : (
+              <Text style={styles.empty}>Aun no hay votos registrados.</Text>
+            )}
+          </BlueSection>
 
-          <Text style={styles.sectionTitle}>Ãšltimos ganadores (Jugador de la fecha)</Text>
-          {recentVotes.length ? (
-            recentVotes.map((vote) => (
-              <View key={`vote-${vote.id}`} style={styles.voteCard}>
-                <Text style={styles.voteDate}>{vote.fecha || vote.id}</Text>
-                {vote.winners.map((w) => (
-                  <Text key={`${vote.id}-${w.id}`} style={styles.voteWinner}>
-                    {w.nombre}
-                    {w.equipo ? ` (${w.equipo})` : ""} â€” {w.votos} votos
-                  </Text>
-                ))}
-              </View>
-            ))
-          ) : (
-            <Text style={styles.empty}>AÃºn no hay votaciones cerradas.</Text>
-          )}
+          <BlueSection title="Ultimos ganadores (Jugador de la fecha)">
+            {recentVotes.length ? (
+              recentVotes.map((vote) => (
+                <View key={`vote-${vote.id}`} style={styles.voteCard}>
+                  <Text style={styles.voteDate}>{vote.fecha || vote.id}</Text>
+                  {vote.winners.map((w) => (
+                    <View key={`${vote.id}-${w.id}`} style={styles.recentWinnerRow}>
+                      <Image source={w.teamLogo} style={styles.listLogo} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.voteWinner}>{w.nombre}</Text>
+                        {w.equipo ? (
+                          <Text style={styles.voteWinnerTeam}>{w.equipo}</Text>
+                        ) : null}
+                      </View>
+                      <Text style={styles.rowValue}>{w.votos} votos</Text>
+                    </View>
+                  ))}
+                </View>
+              ))
+            ) : (
+              <Text style={styles.empty}>Aun no hay votaciones cerradas.</Text>
+            )}
+          </BlueSection>
         </ScrollView>
       )}
     </View>
@@ -732,72 +768,82 @@ const styles = StyleSheet.create({
   reloadTxt: { color: APP_COLORS.campo || "#2f7d32", fontWeight: "700" },
   error: { textAlign: "center", color: APP_COLORS.texto || "#333" },
 
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: APP_COLORS.texto || "#333",
+  sectionCard: {
+    borderRadius: 20,
+    padding: 14,
     marginTop: 16,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+    shadowColor: "#03193d",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  sectionHeader: {
+  sectionCardHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 16,
-    marginBottom: 8,
-    gap: 12,
+    marginBottom: 12,
   },
-  sectionHeaderTitle: { marginTop: 0, marginBottom: 0 },
-  shareButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  sectionCardTitle: { color: "#E3F2FD", fontSize: 17, fontWeight: "800", flex: 1 },
+  sectionCardShare: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     borderWidth: 1,
-    borderColor: APP_COLORS.campo || "#2f7d32",
-    backgroundColor: APP_COLORS.blanco || "#fff",
+    borderColor: "rgba(255,255,255,0.4)",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.08)",
   },
-  summaryCard: {
-    backgroundColor: "rgba(4,44,99,0.08)",
-    borderRadius: 12,
+  sectionCardBody: { gap: 10 },
+  summaryRow: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: "rgba(4,44,99,0.25)",
-    marginBottom: 8,
+    borderColor: "rgba(255,255,255,0.12)",
   },
-  summaryLabel: { fontWeight: "700", color: "#0a356a" },
-  summaryValue: { color: APP_COLORS.texto || "#333", marginTop: 4 },
+  summaryLabel: { fontWeight: "700", color: "#CFE7FF", fontSize: 13 },
+  summaryValue: { color: "#fff", marginTop: 4, fontWeight: "600", fontSize: 15 },
 
   listRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: APP_COLORS.blanco || "#fff",
+    backgroundColor: "rgba(255,255,255,0.08)",
     borderRadius: 12,
     padding: 10,
-    marginBottom: 6,
     borderWidth: 1,
-    borderColor: APP_COLORS.cielo || "#C8E6C9",
+    borderColor: "rgba(255,255,255,0.12)",
+    gap: 10,
   },
-  rank: { width: 28, textAlign: "center", fontWeight: "800", color: APP_COLORS.campo || "#2f7d32" },
-  rowName: { fontWeight: "700", color: APP_COLORS.texto || "#333" },
-  rowSub: { color: APP_COLORS.texto || "#333" },
-  rowValue: { fontWeight: "700", color: APP_COLORS.campo || "#2f7d32" },
+  listPlayerInfo: { flexDirection: "row", alignItems: "center", flex: 1, gap: 10 },
+  listLogo: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.12)" },
+  rank: { width: 28, textAlign: "center", fontWeight: "800", color: "#CFE7FF" },
+  rowName: { fontWeight: "700", color: "#fff" },
+  rowSub: { color: "rgba(255,255,255,0.8)" },
+  rowValue: { fontWeight: "700", color: "#CDE9FF" },
 
-  teamLogo: { width: 32, height: 32, marginRight: 8, borderRadius: 16 },
+  teamLogo: { width: 32, height: 32, marginRight: 8, borderRadius: 16, backgroundColor: "rgba(3,31,74,0.4)" },
+  playerAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.15)" },
+  miniLogo: { width: 26, height: 26, marginTop: 6, borderRadius: 13, backgroundColor: "rgba(255,255,255,0.1)" },
 
-  empty: { color: APP_COLORS.texto || "#333", textAlign: "center", marginVertical: 12 },
+  empty: { color: "#E0ECFF", textAlign: "center", marginVertical: 12 },
 
   voteCard: {
-    backgroundColor: APP_COLORS.blanco || "#fff",
+    backgroundColor: "rgba(255,255,255,0.08)",
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: APP_COLORS.cielo || "#C8E6C9",
+    borderColor: "rgba(255,255,255,0.12)",
     marginBottom: 8,
+    gap: 8,
   },
-  voteDate: { fontWeight: "700", color: APP_COLORS.campo || "#2f7d32", marginBottom: 4 },
-  voteWinner: { color: APP_COLORS.texto || "#333" },
+  voteDate: { fontWeight: "700", color: "#CFE7FF", marginBottom: 4 },
+  recentWinnerRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  voteWinner: { color: "#fff", fontWeight: "700" },
+  voteWinnerTeam: { color: "rgba(255,255,255,0.8)", fontSize: 12 },
 });
 
 

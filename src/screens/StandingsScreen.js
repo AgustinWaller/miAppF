@@ -11,6 +11,7 @@ import {
   Share,
   ScrollView,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { APP_COLORS } from "../theme/colors";
 import { getMatchesByDivision } from "../services/matches";
 import { getTeamsByDivision } from "../services/teams";
@@ -35,6 +36,18 @@ const resolveTeamName = (teamId, rawName) => {
   const normalized = normalizeKey(teamId);
   return TEAM_NAME_LOOKUP[normalized] || TEAM_NAME_LOOKUP[teamId] || teamId || "Equipo";
 };
+
+const STAT_FIELDS = [
+  { key: "pj", label: "PJ" },
+  { key: "pg", label: "PG" },
+  { key: "pe", label: "PE" },
+  { key: "pp", label: "PP" },
+  { key: "gf", label: "GF" },
+  { key: "gc", label: "GC" },
+  { key: "dg", label: "DG" },
+  { key: "pts", label: "PTS" },
+];
+const STAT_CELL_WIDTH = 54;
 
 function buildTableFromMatches(matches) {
   const table = new Map();
@@ -135,8 +148,8 @@ export default function StandingsScreen() {
       )
       .join("\n");
     Share.share({
-      title: `Tabla División ${division}`,
-      message: `Tabla División ${division}\n${payload}`,
+      title: `Tabla Division ${division}`,
+      message: `Tabla Division ${division}\n${payload}`,
     }).catch(() => {});
   }, [rows, division]);
 
@@ -159,14 +172,20 @@ export default function StandingsScreen() {
             <Text style={styles.teamPos}>#{index + 1}</Text>
           </View>
         </View>
-        <Text style={styles.statCell}>{item.pj}</Text>
-        <Text style={styles.statCell}>{item.pg}</Text>
-        <Text style={styles.statCell}>{item.pe}</Text>
-        <Text style={styles.statCell}>{item.pp}</Text>
-        <Text style={styles.statCell}>{item.gf}</Text>
-        <Text style={styles.statCell}>{item.gc}</Text>
-        <Text style={styles.statCell}>{item.dg}</Text>
-        <Text style={[styles.statCell, styles.pointsCell]}>{item.pts}</Text>
+        {STAT_FIELDS.map((field, idx) => (
+          <View
+            key={field.key}
+            style={[
+              styles.statCellWrapper,
+              idx > 0 && styles.statSeparator,
+              field.key === "pts" && styles.pointsWrapper,
+            ]}
+          >
+            <Text style={[styles.statCell, field.key === "pts" && styles.pointsCell]}>
+              {item[field.key]}
+            </Text>
+          </View>
+        ))}
       </View>
     );
   };
@@ -196,16 +215,25 @@ export default function StandingsScreen() {
           {error}. Toca para reintentar.
         </Text>
       ) : (
-        <View style={styles.tableCard}>
+        <LinearGradient colors={["#042C63", "#0B4FA7"]} style={styles.tableCard}>
           <Text style={styles.tableTitle}>Tabla de posiciones</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.tableInner}>
               <View style={styles.headerRow}>
                 <Text style={[styles.headerCell, styles.headerTeam]}>Equipo</Text>
-                {["PJ", "PG", "PE", "PP", "GF", "GC", "DG", "PTS"].map((label) => (
-                  <Text key={label} style={styles.headerCell}>
-                    {label}
-                  </Text>
+                {STAT_FIELDS.map((field, idx) => (
+                  <View
+                    key={field.key}
+                    style={[
+                      styles.headerStatCell,
+                      idx > 0 && styles.headerDivider,
+                      field.key === "pts" && styles.pointsHeaderCell,
+                    ]}
+                  >
+                    <Text style={[styles.headerCell, field.key === "pts" && styles.pointsCell]}>
+                      {field.label}
+                    </Text>
+                  </View>
                 ))}
               </View>
               <FlatList
@@ -217,7 +245,7 @@ export default function StandingsScreen() {
               />
             </View>
           </ScrollView>
-        </View>
+        </LinearGradient>
       )}
     </View>
   );
@@ -248,16 +276,16 @@ const styles = StyleSheet.create({
   },
   shareText: { color: APP_COLORS.campo, fontWeight: "700" },
   tableCard: {
-    backgroundColor: "rgba(37,110,55,0.15)",
-    borderRadius: 18,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: APP_COLORS.campo,
+    borderColor: "rgba(255,255,255,0.25)",
     padding: 12,
-    shadowColor: "#0c3d19",
-    shadowOpacity: 0.1,
+    shadowColor: "#02173b",
+    shadowOpacity: 0.2,
     shadowRadius: 12,
+    elevation: 4,
   },
-  tableInner: { paddingRight: 16, minWidth: 600 },
+  tableInner: { paddingRight: 16, minWidth: 680 },
   tableTitle: {
     textAlign: "center",
     color: APP_COLORS.texto,
@@ -274,15 +302,20 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     marginBottom: 6,
+    columnGap: 6,
   },
-  headerCell: {
-    minWidth: 26,
-    textAlign: "center",
-    color: APP_COLORS.blanco,
-    fontWeight: "700",
-    fontSize: 10,
+  headerCell: { color: APP_COLORS.blanco, fontWeight: "700", fontSize: 11 },
+  headerTeam: { width: 220, textAlign: "left" },
+  headerStatCell: {
+    minWidth: STAT_CELL_WIDTH,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: "rgba(255,255,255,0.08)",
   },
-  headerTeam: { flex: 1.6, textAlign: "left" },
+  headerDivider: { borderLeftWidth: 0.5, borderColor: "rgba(255,255,255,0.25)" },
+  pointsHeaderCell: { backgroundColor: "rgba(11,79,167,0.35)" },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -290,20 +323,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 12,
     marginBottom: 4,
+    columnGap: 6,
   },
   rowEven: { backgroundColor: "rgba(255,255,255,0.65)" },
   rowOdd: { backgroundColor: "rgba(236,249,238,0.9)" },
-  teamCol: { flexDirection: "row", alignItems: "center", flex: 1.6, gap: 8 },
+  teamCol: { flexDirection: "row", alignItems: "center", gap: 8, width: 220, flexShrink: 0 },
   teamLogo: { width: 36, height: 36, borderRadius: 18, backgroundColor: APP_COLORS.cielo },
-  teamName: { color: APP_COLORS.texto, fontWeight: "700", fontSize: 13 },
+  teamName: { color: APP_COLORS.texto, fontWeight: "700", fontSize: 13, maxWidth: 170 },
   teamPos: { color: APP_COLORS.texto, fontSize: 11, opacity: 0.65 },
+  statCellWrapper: {
+    minWidth: STAT_CELL_WIDTH,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 4,
+  },
+  statSeparator: { borderLeftWidth: 0.5, borderColor: "rgba(8,45,99,0.18)" },
   statCell: {
-    minWidth: 24,
     textAlign: "center",
     color: APP_COLORS.texto,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
   },
+  pointsWrapper: { backgroundColor: "rgba(4,44,99,0.08)", borderRadius: 6 },
   pointsCell: { color: APP_COLORS.campo, fontWeight: "800" },
   empty: { textAlign: "center", marginTop: 32, color: APP_COLORS.texto },
 });

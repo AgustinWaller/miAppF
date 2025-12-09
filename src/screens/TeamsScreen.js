@@ -8,7 +8,9 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Image,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { getTeamsByDivision } from "../services/teams";
 import {
   loadFavoriteTeams,
@@ -23,6 +25,7 @@ import { auth } from "../services/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { TEAMS_MAP } from "../data/teamsMap";
 import { APP_COLORS } from "../theme/colors";
+import { safeImage, FALLBACK_TEAM } from "../utils/images";
 
 const normalizeKey = (value) => {
   const raw = String(value || "");
@@ -170,51 +173,62 @@ export default function TeamsScreen({ navigation }) {
     [favorites, division, refreshCounts, userId]
   );
 
-const renderTeam = ({ item }) => {
-  const nombre = resolveTeamName(item);
+  const renderTeam = ({ item }) => {
+    const nombre = resolveTeamName(item);
+    const count = favoriteCounts.get(item.id) || 0;
+    const isFavorite = favorites.includes(item.id);
+    const logoSource = safeImage(
+      item.logoUrl || item.logoURL || item.logo || "",
+      { uri: FALLBACK_TEAM }
+    );
 
-  const count = favoriteCounts.get(item.id) || 0;
-  const isFavorite = favorites.includes(item.id);
-
-  return (
-    <View style={styles.teamRow}>
-      <TouchableOpacity
-        style={styles.teamButton}
-        onPress={() =>
-          navigation.navigate("TeamDetail", {
-            division,
-            teamId: item.id,
-          })
-        }
+    return (
+      <LinearGradient
+        colors={["#042C63", "#0B4FA7"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.teamCard}
       >
-        <View style={styles.teamInfo}>
-          <Text style={styles.teamName}>{nombre}</Text>
-          <Text style={styles.teamDivision}>División {item.divisionId || division}</Text>
-        </View>
-      </TouchableOpacity>
-
-      <View style={styles.favoriteRow}>
-        <TouchableOpacity onPress={() => toggleFavorite(item)}>
-          <Text
-            style={[
-              styles.favoriteIcon,
-              isFavorite && styles.favoriteIconActive,
-            ]}
-          >
-            {isFavorite ? "Favorito" : "Elegir"}
-          </Text>
+        <TouchableOpacity
+          style={styles.teamButton}
+          onPress={() =>
+            navigation.navigate("TeamDetail", {
+              division,
+              teamId: item.id,
+            })
+          }
+        >
+          <View style={styles.teamInfo}>
+            <Image source={logoSource} style={styles.cardLogo} />
+            <View>
+              <Text style={styles.teamName}>{nombre}</Text>
+              <Text style={styles.teamDivision}>Division {item.divisionId || division}</Text>
+            </View>
+          </View>
         </TouchableOpacity>
-        <Text style={styles.favoriteCount}>{count}</Text>
-      </View>
-    </View>
-  );
-};
+
+        <View style={styles.favoriteRow}>
+          <TouchableOpacity onPress={() => toggleFavorite(item)}>
+            <Text
+              style={[
+                styles.favoriteIcon,
+                isFavorite && styles.favoriteIconActive,
+              ]}
+            >
+              {isFavorite ? "Favorito" : "Elegir"}
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.favoriteCount}>{count}</Text>
+        </View>
+      </LinearGradient>
+    );
+  };
 
 
   return (
     <View style={styles.container}>
       <Text style={styles.debug}>
-        División {division} • Equipos: {rows.length}
+        Division {division} | Equipos: {rows.length}
       </Text>
 
       {/* Selector A / B */}
@@ -269,48 +283,50 @@ const renderTeam = ({ item }) => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#fff" },
+  container: { flex: 1, padding: 16, backgroundColor: APP_COLORS.fondo },
   divisionSwitch: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
-    gap: 8,
+    gap: 10,
   },
   divButton: {
-    padding: 10,
-    backgroundColor: "#eee",
-    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: "#2f7d32",
+    borderColor: "rgba(255,255,255,0.3)",
+    backgroundColor: "rgba(4,44,99,0.15)",
   },
-  activeDivButton: { backgroundColor: "#2f7d32" },
-  divText: { fontWeight: "bold", color: "#2f7d32" },
+  activeDivButton: { backgroundColor: APP_COLORS.campo, borderColor: APP_COLORS.campo },
+  divText: { fontWeight: "700", color: "#e0ecff" },
   activeDivText: { color: "#fff" },
   reload: { marginLeft: "auto" },
-  reloadTxt: { color: "#2f7d32", fontWeight: "700" },
-  teamRow: {
+  reloadTxt: { color: "#d1ffea", fontWeight: "700" },
+  teamCard: {
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#02173b",
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#d0e8d6",
-    backgroundColor: "rgba(13, 71, 29, 0.05)",
-    shadowColor: "#0b5024",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
+    justifyContent: "space-between",
   },
-  teamButton: { flex: 1 },
-  teamInfo: { flexDirection: "column" },
-  teamName: { fontSize: 16, fontWeight: "700", color: APP_COLORS.texto },
-  teamDivision: { color: "#5d8f63", fontSize: 12, marginTop: 2 },
-  favoriteRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  favoriteIcon: { fontSize: 14, color: "#2f7d32", fontWeight: "700" },
-  favoriteIconActive: { color: "#e53935" },
-  favoriteCount: { fontSize: 14, color: "#333" },
-  empty: { textAlign: "center", marginTop: 24, color: "#333" },
-  debug: { color: "#777", marginBottom: 4 },
+  teamButton: { flex: 1, marginRight: 12 },
+  teamInfo: { flexDirection: "row", alignItems: "center", gap: 14 },
+  cardLogo: { width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.2)" },
+  teamName: { fontSize: 16, fontWeight: "700", color: "#fff" },
+  teamDivision: { color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 2 },
+  favoriteRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  favoriteIcon: { fontSize: 14, color: "#E0F7FA", fontWeight: "700" },
+  favoriteIconActive: { color: "#ffbaba" },
+  favoriteCount: { fontSize: 14, color: "#fff", fontWeight: "700" },
+  empty: { textAlign: "center", marginTop: 24, color: APP_COLORS.texto },
+  debug: { color: "#c8e6c9", marginBottom: 4, fontWeight: "600" },
 });
+
+
 

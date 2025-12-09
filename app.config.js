@@ -10,8 +10,13 @@ export default ({ config }) => {
       orientation: "portrait",
       sdkVersion: "52.0.0",
       platforms: ["ios", "android", "web"],
+      icon: "./assets/icon.png",
       android: {
         package: "com.agustinwaller.myappf",
+        adaptiveIcon: {
+          foregroundImage: "./assets/icon.png",
+          backgroundColor: "#031f4a",
+        },
       },
       assetBundlePatterns: ["**/*"],
       plugins: ["expo-font", "expo-asset"],

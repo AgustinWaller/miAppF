@@ -1,10 +1,14 @@
 division;match_id;date_iso;fecha_numero;local_id;visitante_id;goles_local;goles_visitante;eventos
-# division: Letra A/B de la categorÃ­a del partido.
-# match_id: ID Ãºnico (sin espacios). Puede incluir descripciÃ³n, ej: sancarlos_horqueta_fecha1.
-# date_iso: Fecha legible o ISO8601 (se usa solo como referencia en tablas).
-# fecha_numero: NÃºmero de fecha/jornada. Solo nÃºmeros.
+# division: Letra A/B de la categoría del partido.
+# match_id: ID único (sin espacios). Puede incluir descripción, ej: sancarlos_horqueta_fecha1.
+# date_iso: Fecha legible o ISO8601 (solo referencia en tablas).
+# fecha_numero: Número de fecha/jornada. Solo números.
 # local_id / visitante_id: team_id existentes en teams.csv para local y visitante.
-# goles_local / goles_visitante: Cantidad final de goles (nÃºmero entero).
-# eventos: JSON stringificado con objetos { "tipo": "...", "jugadorId": "player_id" } para registrar goles u otros eventos.
-A;sancarlos_horqueta_final;San Carlos 4-1 Horqueta Wanderers;1;sancarlos;horqueta;4;1;[{"tipo":"gol San Carlos","jugadorId":"sancarlos_coccolo"},{"tipo":"gol San Carlos","jugadorId":"sancarlos_coccolo"},{"tipo":"gol San Carlos","jugadorId":"sancarlos_cabrera"},{"tipo":"gol San Carlos","jugadorId":"sancarlos_castrillo"},{"tipo":"gol Horqueta","jugadorId":"horqueta_tatan"}]
-A;sancarlos_artesano_final;San Carlos 6-0 Artesano;2;sancarlos;artesano;6;0;[{"tipo":"gol San Carlos","jugadorId":"sancarlos_coccolo"},{"tipo":"gol San Carlos","jugadorId":"sancarlos_coccolo"},{"tipo":"gol San Carlos","jugadorId":"sancarlos_laclau"},{"tipo":"gol San Carlos","jugadorId":"sancarlos_castrillo"},{"tipo":"gol San Carlos","jugadorId":"sancarlos_laclau"},{"tipo":"gol San Carlos","jugadorId":"sancarlos_laclau"}]
+# goles_local / goles_visitante: Cantidad final de goles (número entero).
+# eventos: JSON stringificado con objetos { "tipo": "gol", "jugadorId": "player_id", "minuto": 12 }. "minuto" es opcional.
+A;sancarlos_horqueta;San Carlos 4-1 Horqueta Wanderers;1;sancarlos;horqueta;4;1;[{"tipo":"gol","jugadorId":"sancarlos_coccolo"},{"tipo":"gol","jugadorId":"sancarlos_coccolo"},{"tipo":"gol","jugadorId":"sancarlos_cabrera"},{"tipo":"gol","jugadorId":"sancarlos_castrillo"},{"tipo":"gol","jugadorId":"horqueta_tatan"}]
+A;sancarlos_artesano;San Carlos 6-0 Artesano;2;sancarlos;artesano;6;0;[{"tipo":"gol","jugadorId":"sancarlos_coccolo"},{"tipo":"gol","jugadorId":"sancarlos_coccolo"},{"tipo":"gol","jugadorId":"sancarlos_laclau"},{"tipo":"gol","jugadorId":"sancarlos_castrillo"},{"tipo":"gol","jugadorId":"sancarlos_laclau"},{"tipo":"gol","jugadorId":"sancarlos_laclau"}]
+B;progreso_sanpedro;Progreso 1-0 San Pedro;1;progreso;sanpedro;1;0;[{"tipo":"gol","jugadorId":"progreso_martiarena"}]
+A;horqueta_artesano;Horqueta Wanderers 2-0 Artesano;3;horqueta;artesano;2;0;[{"tipo":"gol","jugadorId":"horqueta_tatan"},{"tipo":"gol","jugadorId":"horqueta_tatan"}]
+B;sarandi_sanpedro;Sarandi 0-0 San Pedro;2;sarandi;sanpedro;0;0;[]
+B;progreso_sarandi;Progreso 2-0 Sarandi;3;progreso;sarandi;2;0;[{"tipo":"gol","jugadorId":"progreso_martiarena"},{"tipo":"gol","jugadorId":"progreso_martiarena"}]

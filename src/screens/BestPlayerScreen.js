@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Image, Alert } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { collection, doc, getDoc, setDoc, getDocs } from "firebase/firestore";
 
 import { APP_COLORS } from "../theme/colors";
@@ -10,6 +11,7 @@ import { db } from "../services/firebase";
 import { getPersistentDeviceId } from "../utils/device";
 import { scheduleVoteReminder, cancelVoteReminder } from "../utils/notifications";
 import { TEAMS_MAP } from "../data/teamsMap";
+import { safeImage, FALLBACK_PLAYER, FALLBACK_TEAM } from "../utils/images";
 
 const normalizeKey = (value) => {
   const raw = String(value || "");
@@ -59,7 +61,11 @@ export default function BestPlayerScreen() {
           TEAMS_MAP[normalized] ||
           player.teamId ||
           "";
-        return { ...player, teamName };
+        const teamLogo = safeImage(
+          teamDoc?.logoUrl || teamDoc?.logoURL || teamDoc?.logo || "",
+          FALLBACK_TEAM
+        );
+        return { ...player, teamName, teamLogo };
       });
       setPlayers(playersWithTeam);
       setTeams(teamsList);
@@ -150,6 +156,7 @@ export default function BestPlayerScreen() {
       id: p.id,
       nombre: p.name,
       equipo: p.teamName || "",
+      teamLogo: p.teamLogo,
       votos: votosPorJugador[p.id] || 0,
     }));
     return items.sort((a, b) => b.votos - a.votos || a.nombre.localeCompare(b.nombre)).slice(0, 5);
@@ -188,27 +195,48 @@ export default function BestPlayerScreen() {
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.topTitle}>Top 5 en vivo</Text>
-      {votacion ? (
-        <FlatList
-          data={top5}
-          keyExtractor={(it) => `top-${it.id}`}
-          contentContainerStyle={{ paddingBottom: 8 }}
-          renderItem={({ item, index }) => (
-            <View style={styles.topRow}>
-              <Text style={styles.topRank}>{index + 1}</Text>
-              <Text style={styles.topName}>{item.nombre}</Text>
-              {!!item.equipo && <Text style={styles.topTeam}>{item.equipo}</Text>}
-              <Text style={styles.topVotes}>{item.votos}</Text>
-            </View>
-          )}
-          ListEmptyComponent={<Text style={styles.empty}>Aún sin votos.</Text>}
-        />
-      ) : (
-        <Text style={styles.empty}>Sin votación abierta.</Text>
-      )}
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={APP_COLORS.campo} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.emptyCard} onPress={load}>Error al cargar. Toca para reintentar.</Text>
+      </View>
+    );
+  }
+
+  const headerComponent = (
+    <>
+      <LinearGradient colors={["#042C63", "#0B4FA7"]} style={styles.sectionCard}>
+        <Text style={styles.topTitle}>Top 5 en vivo</Text>
+        {votacion ? (
+          top5.length ? (
+            top5.map((item, index) => (
+              <View key={`live-${item.id}`} style={styles.topRow}>
+                <Text style={styles.topRank}>{index + 1}</Text>
+                <View style={styles.topInfo}>
+                  <Image source={item.teamLogo || safeImage("", FALLBACK_TEAM)} style={styles.topLogo} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.topName}>{item.nombre}</Text>
+                    {!!item.equipo && <Text style={styles.topTeam}>{item.equipo}</Text>}
+                  </View>
+                </View>
+                <Text style={styles.topVotes}>{item.votos}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.emptyCard}>Aun sin votos.</Text>
+          )
+        ) : (
+          <Text style={styles.emptyCard}>Sin votacion abierta.</Text>
+        )}
+      </LinearGradient>
 
       <View style={styles.divRow}>
         {["A", "B"].map((d) => (
@@ -222,8 +250,8 @@ export default function BestPlayerScreen() {
         ))}
       </View>
 
-      <View style={styles.teamSelect}>
-        <Text style={styles.teamLabel}>Seleccioná un equipo:</Text>
+      <LinearGradient colors={["#042C63", "#0B4FA7"]} style={styles.sectionCard}>
+        <Text style={styles.teamLabel}>Selecciona un equipo:</Text>
         <View style={styles.teamChips}>
           {teams.length ? teams.map((team) => (
             <TouchableOpacity
@@ -236,31 +264,33 @@ export default function BestPlayerScreen() {
               </Text>
             </TouchableOpacity>
           )) : (
-            <Text style={styles.empty}>No hay equipos en esta división.</Text>
+            <Text style={styles.emptyCard}>No hay equipos en esta division.</Text>
           )}
         </View>
-      </View>
+      </LinearGradient>
+    </>
+  );
 
-      {loading ? (
-        <ActivityIndicator size="large" color={APP_COLORS.campo} style={{ marginTop: 24 }} />
-      ) : error ? (
-        <Text style={styles.empty} onPress={load}>Error al cargar. Toca para reintentar.</Text>
-      ) : (
-        <FlatList
-          data={filteredPlayers}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 24 }}
-          ListEmptyComponent={<Text style={styles.empty}>Seleccioná un equipo para ver sus jugadores.</Text>}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              {item.photoUrl ? <Image source={{ uri: item.photoUrl }} style={styles.avatar} /> : null}
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={filteredPlayers}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        ListHeaderComponent={headerComponent}
+        ListEmptyComponent={<Text style={styles.emptyCard}>Selecciona un equipo para ver sus jugadores.</Text>}
+        renderItem={({ item }) => {
+          const avatar = safeImage(item.photoUrl || item.photoURL || "", FALLBACK_PLAYER);
+          return (
+            <LinearGradient colors={["#042C63", "#0B4FA7"]} style={styles.card}>
+              <Image source={avatar} style={styles.avatar} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{item.name}</Text>
                 {!!item.teamName && <Text style={styles.sub}>{item.teamName}</Text>}
               </View>
               {votacion ? (
                 <TouchableOpacity
-                  style={[styles.voteBtn, (submitting === item.id || yaVoto.has(userId)) && { opacity: 0.6 }]}
+                  style={[styles.voteBtn, (submitting === item.id || yaVoto.has(userId)) && styles.voteBtnDisabled]}
                   disabled={!!submitting || yaVoto.has(userId)}
                   onPress={() => onVote(item.id)}
                 >
@@ -269,80 +299,115 @@ export default function BestPlayerScreen() {
                   </Text>
                 </TouchableOpacity>
               ) : (
-                <View style={[styles.voteBtn, { backgroundColor: "#bbb" }]}>
-                  <Text style={styles.voteText}>Sin votación</Text>
+                <View style={[styles.voteBtn, styles.voteBtnDisabled]}>
+                  <Text style={styles.voteText}>Sin votacion</Text>
                 </View>
               )}
               {votacion ? (
-                <Text style={styles.votesCount}>{votosPorJugador[item.id] || 0}</Text>
+                <View style={styles.cardVotes}>
+                  <Text style={styles.votesCount}>{votosPorJugador[item.id] || 0}</Text>
+                  {item.teamLogo ? <Image source={item.teamLogo} style={styles.cardTeamLogo} /> : null}
+                </View>
               ) : null}
-            </View>
-          )}
-        />
-      )}
+            </LinearGradient>
+          );
+        }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: APP_COLORS.fondo },
-  topTitle: { fontWeight: "800", marginBottom: 8, color: APP_COLORS.texto },
+  centerContent: { justifyContent: "center", alignItems: "center" },
+  sectionCard: {
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+    shadowColor: "#02173b",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
+    gap: 12,
+  },
+  topTitle: { fontWeight: "800", marginBottom: 8, color: "#E3F2FD", fontSize: 16 },
   topRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: APP_COLORS.blanco,
-    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 14,
     padding: 10,
     marginBottom: 6,
     borderWidth: 1,
-    borderColor: APP_COLORS.cielo,
+    borderColor: "rgba(255,255,255,0.12)",
+    gap: 10,
   },
-  topRank: { width: 28, textAlign: "center", fontWeight: "800", color: APP_COLORS.campo },
-  topName: { flex: 1, fontWeight: "700", color: APP_COLORS.texto },
-  topTeam: { marginLeft: 8, color: APP_COLORS.texto },
-  topVotes: { marginLeft: 8, fontWeight: "700", color: APP_COLORS.campo },
-  divRow: { flexDirection: "row", gap: 12, marginBottom: 12 },
+  topRank: { width: 28, textAlign: "center", fontWeight: "800", color: "#fff" },
+  topInfo: { flexDirection: "row", alignItems: "center", flex: 1, gap: 10 },
+  topLogo: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.15)" },
+  topName: { fontWeight: "700", color: "#fff" },
+  topTeam: { color: "rgba(255,255,255,0.75)", fontSize: 12 },
+  topVotes: { fontWeight: "700", color: "#CDE9FF" },
+  divRow: { flexDirection: "row", gap: 12, marginBottom: 12, justifyContent: "center" },
   divBtn: {
     borderWidth: 1,
-    borderColor: APP_COLORS.campo,
+    borderColor: "rgba(255,255,255,0.4)",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: APP_COLORS.blanco,
+    backgroundColor: "rgba(255,255,255,0.08)",
   },
-  divBtnActive: { backgroundColor: APP_COLORS.campo },
-  divText: { color: APP_COLORS.texto, fontWeight: "700" },
-  divTextActive: { color: APP_COLORS.blanco },
-  teamSelect: { marginBottom: 12 },
-  teamLabel: { fontWeight: "700", color: APP_COLORS.texto, marginBottom: 6 },
+  divBtnActive: { backgroundColor: APP_COLORS.campo, borderColor: APP_COLORS.campo },
+  divText: { color: "#dfefff", fontWeight: "700" },
+  divTextActive: { color: "#fff" },
+  teamLabel: { fontWeight: "700", color: "#E3F2FD" },
   teamChips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   teamChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: APP_COLORS.campo,
-    backgroundColor: APP_COLORS.blanco,
+    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.08)",
   },
-  teamChipActive: { backgroundColor: APP_COLORS.campo },
-  teamChipText: { color: APP_COLORS.campo, fontWeight: "600" },
-  teamChipTextActive: { color: APP_COLORS.blanco },
+  teamChipActive: { backgroundColor: APP_COLORS.campo, borderColor: APP_COLORS.campo },
+  teamChipText: { color: "#d6edff" },
+  teamChipTextActive: { color: "#fff", fontWeight: "700" },
   card: {
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: APP_COLORS.blanco,
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 10,
     borderWidth: 1,
-    borderColor: APP_COLORS.cielo,
+    borderColor: "rgba(255,255,255,0.2)",
   },
-  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: APP_COLORS.cielo },
-  name: { fontSize: 16, fontWeight: "700", color: APP_COLORS.texto },
-  sub: { color: APP_COLORS.texto },
-  voteBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: APP_COLORS.campo },
-  voteText: { color: APP_COLORS.blanco, fontWeight: "700" },
-  votesCount: { marginLeft: 8, fontWeight: "700", color: APP_COLORS.campo },
-  empty: { textAlign: "center", marginTop: 32, color: APP_COLORS.texto },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  name: { fontWeight: "700", color: "#fff" },
+  sub: { color: "rgba(255,255,255,0.7)" },
+  voteBtn: {
+    backgroundColor: APP_COLORS.campo,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  voteBtnDisabled: { opacity: 0.6 },
+  voteText: { color: "#fff", fontWeight: "700" },
+  cardVotes: { alignItems: "center", marginLeft: 12 },
+  votesCount: { marginBottom: 4, fontWeight: "800", color: "#fff" },
+  cardTeamLogo: { width: 28, height: 28, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.15)" },
+  empty: { textAlign: "center", color: APP_COLORS.texto, marginTop: 20 },
+  emptyCard: { textAlign: "center", color: "#dfefff", marginTop: 8 },
 });
+
+
+
+

@@ -13,7 +13,6 @@ import { collection, onSnapshot } from "firebase/firestore";
 import NewsScreen from "./src/screens/NewsScreen";
 import MatchesScreen from "./src/screens/MatchesScreen";
 import StandingsScreen from "./src/screens/StandingsScreen";
-import TopPlayersScreen from "./src/screens/TopPlayersScreen";
 import BestPlayerScreen from "./src/screens/BestPlayerScreen";
 import TeamsScreen from "./src/screens/TeamsScreen";
 import ExtrasScreen from "./src/screens/ExtrasScreen";
@@ -69,15 +68,14 @@ function MainDrawer() {
         drawerLabelStyle: { fontWeight: "600" },
       }}
     >
+      <Drawer.Screen name="Perfil" component={ProfileScreen} />
       <Drawer.Screen name="Inicio" component={NewsScreen} initialParams={{ division: "A" }} />
       <Drawer.Screen name="Partidos" component={MatchesScreen} initialParams={{ division: "A" }} />
       <Drawer.Screen name="Tabla de posiciones" component={StandingsScreen} initialParams={{ division: "A" }} />
-      <Drawer.Screen name="Jugador del año" component={TopPlayersScreen} initialParams={{ division: "A" }} />
       <Drawer.Screen name="Jugador de la fecha" component={BestPlayerScreen} initialParams={{ division: "A" }} />
       <Drawer.Screen name="Equipos" component={TeamsScreen} initialParams={{ division: "A" }} />
       <Drawer.Screen name="Resumen" component={ExtrasScreen} initialParams={{ division: "A" }} />
-      <Drawer.Screen name="Perfil" component={ProfileScreen} />
-      <Drawer.Screen name="Cerrar sesión" component={LogoutScreen} />
+      <Drawer.Screen name="Cerrar sesion" component={LogoutScreen} />
     </Drawer.Navigator>
   );
 }

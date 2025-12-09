@@ -68,14 +68,18 @@ export default function ProfileScreen() {
       Alert.alert("Permiso requerido", "Necesitamos acceso a tus fotos para elegir una imagen.");
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-      mediaTypes: [ImagePicker.MediaType.IMAGES],
-    });
-    if (!result.canceled && result.assets?.length) {
-      setLocalPhoto(result.assets[0].uri);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      });
+      if (!result.canceled && result.assets?.length) {
+        setLocalPhoto(result.assets[0].uri);
+      }
+    } catch (err) {
+      Alert.alert("Error", err?.message || "No pudimos abrir la galeria.");
     }
   };
 
