@@ -78,10 +78,21 @@ async function importTeams() {
   for (const row of rows) {
     const id = (row.team_id || row.id || "").trim();
     if (!id) continue;
-    await db.collection("teams").doc(id).set({
+    const payload = {
       divisionId: (row.division || "").trim(),
       name: (row.name || "").trim(),
-    });
+    };
+
+    const logo =
+      (row.logo_url ||
+        row.logoUrl ||
+        row.logo ||
+        row.logo_uri ||
+        row.logoURL ||
+        "").trim();
+    if (logo) payload.logoUrl = logo;
+
+    await db.collection("teams").doc(id).set(payload, { merge: true });
   }
 }
 

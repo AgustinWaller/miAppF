@@ -1,12 +1,12 @@
 division;match_id;date_iso;fecha_numero;local_id;visitante_id;goles_local;goles_visitante;eventos
-# division: Letra A/B de la categoría del partido.
-# match_id: ID único (sin espacios). Puede incluir descripción, ej: sancarlos_horqueta_fecha1.
+# division: Letra A/B de la categorï¿½a del partido.
+# match_id: ID ï¿½nico (sin espacios). Puede incluir descripciï¿½n, ej: sancarlos_horqueta_fecha1.
 # date_iso: Fecha legible o ISO8601 (solo referencia en tablas).
-# fecha_numero: Número de fecha/jornada. Solo números.
+# fecha_numero: Nï¿½mero de fecha/jornada. Solo nï¿½meros.
 # local_id / visitante_id: team_id existentes en teams.csv para local y visitante.
-# goles_local / goles_visitante: Cantidad final de goles (número entero).
+# goles_local / goles_visitante: Cantidad final de goles (nï¿½mero entero).
 # eventos: JSON stringificado con objetos { "tipo": "gol", "jugadorId": "player_id", "minuto": 12 }. "minuto" es opcional.
-A;sancarlos_horqueta;San Carlos 4-1 Horqueta Wanderers;1;sancarlos;horqueta;4;1;[{"tipo":"gol","jugadorId":"sancarlos_coccolo"},{"tipo":"gol","jugadorId":"sancarlos_coccolo"},{"tipo":"gol","jugadorId":"sancarlos_cabrera"},{"tipo":"gol","jugadorId":"sancarlos_castrillo"},{"tipo":"gol","jugadorId":"horqueta_tatan"}]
+A;sancarlos_horqueta;San Carlos 4-1 Horqueta Wanderers;1;sancarlos;horqueta;4;1;[{"tipo":"gol","jugadorId":"sancarlos_coccolo"},{"tipo":"gol","jugadorId":"sancarlos_coccolo"},{"tipo":"gol","jugadorId":"sancarlos_cabrera"},{"tipo":"gol","jugadorId":"horqueta_tatan"},{"tipo":"gol","jugadorId":"sancarlos_castrillo"}]
 A;sancarlos_artesano;San Carlos 6-0 Artesano;2;sancarlos;artesano;6;0;[{"tipo":"gol","jugadorId":"sancarlos_coccolo"},{"tipo":"gol","jugadorId":"sancarlos_coccolo"},{"tipo":"gol","jugadorId":"sancarlos_laclau"},{"tipo":"gol","jugadorId":"sancarlos_castrillo"},{"tipo":"gol","jugadorId":"sancarlos_laclau"},{"tipo":"gol","jugadorId":"sancarlos_laclau"}]
 B;progreso_sanpedro;Progreso 1-0 San Pedro;1;progreso;sanpedro;1;0;[{"tipo":"gol","jugadorId":"progreso_martiarena"}]
 A;horqueta_artesano;Horqueta Wanderers 2-0 Artesano;3;horqueta;artesano;2;0;[{"tipo":"gol","jugadorId":"horqueta_tatan"},{"tipo":"gol","jugadorId":"horqueta_tatan"}]

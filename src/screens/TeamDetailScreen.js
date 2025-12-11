@@ -188,7 +188,7 @@ export default function TeamDetailScreen({ route }) {
 
   const teamLogo = safeImage(
     team?.logoUrl || team?.logoURL || team?.logo || "",
-    { uri: FALLBACK_TEAM }
+    FALLBACK_TEAM
   );
 
   const topScorers = useMemo(() => {
@@ -271,13 +271,6 @@ export default function TeamDetailScreen({ route }) {
       ) : (
         <Text style={styles.empty}>No hay noticias disponibles.</Text>
       )}
-      <TouchableOpacity
-        style={styles.newsButton}
-        onPress={() => navigation.navigate("Noticias", { division, teamFilter: normalizedTeamIdParam })}
-      >
-        <Text style={styles.newsButtonText}>Ver en Noticias</Text>
-      </TouchableOpacity>
-
       <Text style={styles.subtitle}>Plantel</Text>
     </View>
   );

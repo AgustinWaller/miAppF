@@ -2,7 +2,7 @@
 import {
   View,
   Text,
-  FlatList,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   TextInput,
@@ -45,6 +45,7 @@ export default function ScoreScreen({ route }) {
   const [sending, setSending] = useState(false);
   const [teamDocs, setTeamDocs] = useState([]);
   const shareCardRef = useRef(null);
+  const eventsListRef = useRef(null);
   const [sharing, setSharing] = useState(false);
 
   const appName = Constants.expoConfig?.name || "MiAppF";
@@ -52,7 +53,16 @@ export default function ScoreScreen({ route }) {
 
   const playerMap = useMemo(() => {
     return new Map(
-      jugadores.map((player) => [player.id, player.name || player.nombre || player.displayName])
+      jugadores.map((player) => [String(player.id || "").trim(), player.name || player.nombre || player.displayName])
+    );
+  }, [jugadores]);
+
+  const playerTeamMap = useMemo(() => {
+    return new Map(
+      jugadores.map((player) => [
+        String(player.id || "").trim(),
+        player.teamId || player.team_id || player.equipoId || player.equipo || "",
+      ])
     );
   }, [jugadores]);
 
@@ -116,11 +126,11 @@ export default function ScoreScreen({ route }) {
 
   const localLogo = safeImage(
     localDoc?.logoUrl || localDoc?.logoURL || localDoc?.logo || "",
-    { uri: FALLBACK_TEAM }
+    FALLBACK_TEAM
   );
   const visitanteLogo = safeImage(
     visitanteDoc?.logoUrl || visitanteDoc?.logoURL || visitanteDoc?.logo || "",
-    { uri: FALLBACK_TEAM }
+    FALLBACK_TEAM
   );
   const localKeywords = useMemo(
     () =>
@@ -156,20 +166,34 @@ export default function ScoreScreen({ route }) {
     return output.trim();
   };
 
-  const getNombreJugador = (event) => {
-    if (!event) return "";
+  const getEventPlayerId = (event) => {
     const candidateIds = [
-      event.jugadorId,
-      event.jugador,
-      event.playerId,
-      event.player,
-      event.idJugador,
+      event?.jugadorId,
+      event?.jugador,
+      event?.playerId,
+      event?.player,
+      event?.idJugador,
     ];
     for (const candidate of candidateIds) {
       if (candidate == null) continue;
-      if (playerMap.has(candidate)) return playerMap.get(candidate);
       const asString = String(candidate);
-      if (playerMap.has(asString)) return playerMap.get(asString);
+      if (asString.trim()) return asString;
+    }
+    return null;
+  };
+
+  const getEventPlayerTeamId = (event) => {
+    const pid = getEventPlayerId(event);
+    if (!pid) return null;
+    return playerTeamMap.get(pid) || playerTeamMap.get(String(pid)) || null;
+  };
+
+  const getNombreJugador = (event) => {
+    if (!event) return "";
+    const pid = getEventPlayerId(event);
+    if (pid) {
+      const fromMap = playerMap.get(pid) || playerMap.get(String(pid));
+      if (fromMap) return fromMap;
     }
     const textCandidates = [
       event.jugadorNombre,
@@ -187,6 +211,130 @@ export default function ScoreScreen({ route }) {
   const commentAvatar = safeImage(profile?.photoUrl || user?.photoURL || "", {
     uri: FALLBACK_PLAYER,
   });
+
+  const processedEvents = useMemo(() => {
+    const events = Array.isArray(match.eventos) ? match.eventos : [];
+    const glTotal = Number(match.golesLocal ?? 0);
+    const gvTotal = Number(match.golesVisitante ?? 0);
+    let glAssigned = 0;
+    let gvAssigned = 0;
+
+    return events.map((item) => {
+      const type = String(item.tipo || "");
+      const isGoal = type.toLowerCase().includes("gol");
+      const playerTeamId = getEventPlayerTeamId(item);
+
+      let teamKey = normalizeKey(item.teamId || item.team || item.equipo || "");
+      if (!teamKey && playerTeamId) {
+        teamKey = normalizeKey(playerTeamId);
+      }
+
+      let teamSide = null;
+      if (teamKey) {
+        if (localKeywords.includes(teamKey)) teamSide = "local";
+        else if (visitanteKeywords.includes(teamKey)) teamSide = "visitante";
+      }
+      if (!teamSide) {
+        if (item.golLocal === true) teamSide = "local";
+        else if (item.golVisitante === true) teamSide = "visitante";
+      }
+      if (!teamSide && playerTeamId) {
+        const normalizedPlayerTeam = normalizeKey(playerTeamId);
+        if (localKeywords.includes(normalizedPlayerTeam)) {
+          teamSide = "local";
+        } else if (visitanteKeywords.includes(normalizedPlayerTeam)) {
+          teamSide = "visitante";
+        }
+      }
+      if (!teamSide) {
+        const hintText = [
+          type,
+          item.descripcion,
+          item.description,
+          item.detalle,
+          item.texto,
+          item.text,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (hintText) {
+          if (localKeywords.some((token) => token && hintText.includes(token))) {
+            teamSide = "local";
+          } else if (visitanteKeywords.some((token) => token && hintText.includes(token))) {
+            teamSide = "visitante";
+          }
+        }
+      }
+
+      if (!teamSide && isGoal) {
+        const remainingLocal = Math.max(glTotal - glAssigned, 0);
+        const remainingVisit = Math.max(gvTotal - gvAssigned, 0);
+        if (remainingLocal === 0 && remainingVisit > 0) teamSide = "visitante";
+        else if (remainingVisit === 0 && remainingLocal > 0) teamSide = "local";
+        else if (remainingLocal > remainingVisit) teamSide = "local";
+        else if (remainingVisit > remainingLocal) teamSide = "visitante";
+        else teamSide = "visitante";
+      }
+
+      if (isGoal && teamSide === "local") glAssigned += 1;
+      if (isGoal && teamSide === "visitante") gvAssigned += 1;
+
+      return { item, teamSide };
+    });
+  }, [match.eventos, match.golesLocal, match.golesVisitante, localKeywords, visitanteKeywords, playerTeamMap, playerMap]);
+
+  const eventsList = useMemo(
+    () => (Array.isArray(match.eventos) ? match.eventos : []),
+    [match.eventos]
+  );
+
+  const renderEventRow = (item, index) => {
+    const type = String(item.tipo || "");
+    const isGoal = type.toLowerCase().includes("gol");
+    const minute = item.minuto || item.minute || item.time || "";
+    const playerLabel = getNombreJugador(item);
+    const teamSide = processedEvents[index]?.teamSide || null;
+
+    if (isGoal && (teamSide === "local" || teamSide === "visitante")) {
+      const isLocalEvent = teamSide === "local";
+      const gradientColors = isLocalEvent ? ["#0B4FA7", "#042C63"] : ["#042C63", "#0B4FA7"];
+      return (
+        <LinearGradient
+          key={`${match.id}-ev-${index}`}
+          colors={gradientColors}
+          start={{ x: isLocalEvent ? 0 : 1, y: 0 }}
+          end={{ x: isLocalEvent ? 1 : 0, y: 0 }}
+          style={[styles.goalRow, isLocalEvent ? styles.goalRowLeft : styles.goalRowRight]}
+        >
+          {isLocalEvent ? (
+            <>
+              <Ionicons name="football" size={20} color="#fff" style={styles.goalIconLeft} />
+              <View style={styles.goalInfo}>
+                <Text style={styles.goalPlayer}>{playerLabel}</Text>
+                {minute ? <Text style={styles.goalMinute}>{minute}'</Text> : null}
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={[styles.goalInfo, styles.goalInfoRight]}>
+                <Text style={[styles.goalPlayer, styles.goalPlayerRight]}>{playerLabel}</Text>
+                {minute ? <Text style={styles.goalMinute}>{minute}'</Text> : null}
+              </View>
+              <Ionicons name="football" size={20} color="#fff" style={styles.goalIconRight} />
+            </>
+          )}
+        </LinearGradient>
+      );
+    }
+
+    return (
+      <View key={`${match.id}-ev-${index}`} style={styles.eventRow}>
+        <Text style={styles.eventType}>{item.tipo}</Text>
+        <Text style={styles.eventInfo}>{playerLabel}</Text>
+      </View>
+    );
+  };
 
   const formatCommentDate = (value) => {
     if (!value) return "";
@@ -379,108 +527,19 @@ export default function ScoreScreen({ route }) {
       keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
       <View style={styles.container}>
-        <FlatList
-          data={match.eventos || []}
-          keyExtractor={(_, index) => `${match.id}-ev-${index}`}
+        <ScrollView
+          ref={eventsListRef}
           contentContainerStyle={{ paddingBottom: 32 }}
-          ListHeaderComponent={headerComponent}
-          ListFooterComponent={footerComponent}
-          keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => {
-            const type = String(item.tipo || "");
-            const isGoal = type.toLowerCase().includes("gol");
-
-            let teamKey = normalizeKey(item.teamId || item.team || item.equipo || "");
-            if (!teamKey && type) {
-              const lower = type.toLowerCase();
-              if (localKeywords.some((token) => token && lower.includes(token))) {
-                teamKey = "local";
-              } else if (visitanteKeywords.some((token) => token && lower.includes(token))) {
-                teamKey = "visitante";
-              }
-            }
-
-            let teamSide = null;
-            if (teamKey) {
-              if (localKeywords.includes(teamKey)) teamSide = "local";
-              else if (visitanteKeywords.includes(teamKey)) teamSide = "visitante";
-            }
-            if (!teamSide) {
-              if (item.golLocal === true) teamSide = "local";
-              else if (item.golVisitante === true) teamSide = "visitante";
-            }
-            if (!teamSide) {
-              const hintText = [
-                type,
-                item.descripcion,
-                item.description,
-                item.detalle,
-                item.texto,
-                item.text,
-              ]
-                .filter(Boolean)
-                .join(" ")
-                .toLowerCase();
-              if (hintText) {
-                if (localKeywords.some((token) => token && hintText.includes(token))) {
-                  teamSide = "local";
-                } else if (visitanteKeywords.some((token) => token && hintText.includes(token))) {
-                  teamSide = "visitante";
-                }
-              }
-            }
-
-            const minute = item.minuto || item.minute || item.time || "";
-            const playerLabel = getNombreJugador(item);
-
-            if (isGoal && (teamSide === "local" || teamSide === "visitante")) {
-              const isLocalEvent = teamSide === "local";
-              const gradientColors = isLocalEvent
-                ? ["#0B4FA7", "#042C63"]
-                : ["#042C63", "#0B4FA7"];
-              return (
-                <LinearGradient
-                  colors={gradientColors}
-                  start={{ x: isLocalEvent ? 0 : 1, y: 0 }}
-                  end={{ x: isLocalEvent ? 1 : 0, y: 0 }}
-                  style={[
-                    styles.goalRow,
-                    isLocalEvent ? styles.goalRowLeft : styles.goalRowRight,
-                  ]}
-                >
-                  {isLocalEvent ? (
-                    <>
-                      <Ionicons name="football" size={20} color="#fff" style={styles.goalIconLeft} />
-                      <View style={styles.goalInfo}>
-                        <Text style={styles.goalPlayer}>{playerLabel}</Text>
-                        {minute ? <Text style={styles.goalMinute}>{minute}'</Text> : null}
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <View style={[styles.goalInfo, styles.goalInfoRight]}>
-                        <Text style={[styles.goalPlayer, styles.goalPlayerRight]}>
-                          {playerLabel}
-                        </Text>
-                        {minute ? <Text style={styles.goalMinute}>{minute}'</Text> : null}
-                      </View>
-                      <Ionicons name="football" size={20} color="#fff" style={styles.goalIconRight} />
-                    </>
-                  )}
-                </LinearGradient>
-              );
-            }
-
-            return (
-              <View style={styles.eventRow}>
-                <Text style={styles.eventType}>{item.tipo}</Text>
-                <Text style={styles.eventInfo}>{playerLabel}</Text>
-              </View>
-            );
-          }}
-          ListEmptyComponent={<Text style={styles.empty}>No hay eventos para este partido.</Text>}
-        />
+        >
+          {headerComponent}
+          {eventsList.length ? (
+            eventsList.map((ev, idx) => renderEventRow(ev, idx))
+          ) : (
+            <Text style={styles.empty}>No hay eventos para este partido.</Text>
+          )}
+          {footerComponent}
+        </ScrollView>
       </View>
     </KeyboardAvoidingView>
   );

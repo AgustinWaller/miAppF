@@ -179,7 +179,7 @@ export default function TeamsScreen({ navigation }) {
     const isFavorite = favorites.includes(item.id);
     const logoSource = safeImage(
       item.logoUrl || item.logoURL || item.logo || "",
-      { uri: FALLBACK_TEAM }
+      FALLBACK_TEAM
     );
 
     return (
@@ -252,10 +252,6 @@ export default function TeamsScreen({ navigation }) {
             </Text>
           </TouchableOpacity>
         ))}
-
-        <TouchableOpacity onPress={load} style={styles.reload}>
-          <Text style={styles.reloadTxt}>Refrescar</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Loader / Lista */}
@@ -301,8 +297,6 @@ const styles = StyleSheet.create({
   activeDivButton: { backgroundColor: APP_COLORS.campo, borderColor: APP_COLORS.campo },
   divText: { fontWeight: "700", color: "#e0ecff" },
   activeDivText: { color: "#fff" },
-  reload: { marginLeft: "auto" },
-  reloadTxt: { color: "#d1ffea", fontWeight: "700" },
   teamCard: {
     borderRadius: 22,
     padding: 16,

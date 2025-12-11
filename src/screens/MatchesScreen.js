@@ -73,9 +73,36 @@ export default function MatchesScreen({ route, navigation }) {
 
   const teamsMap = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
 
+  const orderedRows = useMemo(() => {
+    const toRoundValue = (match) => {
+      const raw = match.fechaNumero ?? match.round ?? match.fecha_numero ?? null;
+      if (raw === null || raw === undefined || raw === "") return null;
+      const num = Number(raw);
+      return Number.isNaN(num) ? null : num;
+    };
+    const toDateValue = (match) => {
+      const raw =
+        match.dateIso ||
+        match.date_iso ||
+        match.fechaCalendario ||
+        match.fecha ||
+        "";
+      const parsed = Date.parse(raw);
+      return Number.isNaN(parsed) ? -Infinity : parsed;
+    };
+    return [...rows].sort((a, b) => {
+      const rb = toRoundValue(b);
+      const ra = toRoundValue(a);
+      if (rb !== null && ra !== null && rb !== ra) return rb - ra;
+      const db = toDateValue(b);
+      const da = toDateValue(a);
+      return db - da;
+    });
+  }, [rows]);
+
   const items = useMemo(
     () =>
-      rows.map((m) => {
+      orderedRows.map((m) => {
         const localId = m.localId || m.local || "";
         const visitanteId = m.visitanteId || m.visitante || "";
         const localTeam = teamsMap.get(localId);
@@ -88,17 +115,17 @@ export default function MatchesScreen({ route, navigation }) {
           visitante: visitaTeam?.name || visitaTeam?.nombre || visitanteId || "Equipo visitante",
           localLogo: safeImage(
             localTeam?.logoUrl || localTeam?.logoURL || localTeam?.logo || "",
-            { uri: FALLBACK_TEAM }
+            FALLBACK_TEAM
           ),
           visitanteLogo: safeImage(
             visitaTeam?.logoUrl || visitaTeam?.logoURL || visitaTeam?.logo || "",
-            { uri: FALLBACK_TEAM }
+            FALLBACK_TEAM
           ),
           gl: typeof m.golesLocal === "number" ? m.golesLocal : Number(m.golesLocal || 0),
           gv: typeof m.golesVisitante === "number" ? m.golesVisitante : Number(m.golesVisitante || 0),
         };
       }),
-    [rows, teamsMap]
+    [orderedRows, teamsMap]
   );
 
   const fechas = useMemo(() => {

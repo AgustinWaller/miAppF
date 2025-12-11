@@ -105,6 +105,7 @@ export default function ProfileScreen() {
         finalPhoto = await uploadProfilePhoto(currentUser.uid, localPhoto);
         setLocalPhoto("");
       }
+      setRemotePhoto(finalPhoto || "");
       await saveProfile(currentUser.uid, {
         displayName: trimmedName,
         photoUrl: finalPhoto || "",

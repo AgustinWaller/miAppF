@@ -159,7 +159,7 @@ export default function StandingsScreen() {
       teamsLookup.get(normalizeKey(item.teamId));
     const logo = safeImage(
       doc?.logoUrl || doc?.logoURL || doc?.logo || "",
-      { uri: FALLBACK_TEAM }
+      FALLBACK_TEAM
     );
     return (
       <View style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   tableInner: { paddingRight: 16, minWidth: 680 },
   tableTitle: {
     textAlign: "center",
-    color: APP_COLORS.texto,
+    color: "#E3F2FD",
     fontSize: 18,
     fontWeight: "800",
     marginBottom: 10,
@@ -345,6 +345,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   pointsWrapper: { backgroundColor: "rgba(4,44,99,0.08)", borderRadius: 6 },
-  pointsCell: { color: APP_COLORS.campo, fontWeight: "800" },
+  pointsCell: { color: "#fff", fontWeight: "800" },
   empty: { textAlign: "center", marginTop: 32, color: APP_COLORS.texto },
 });

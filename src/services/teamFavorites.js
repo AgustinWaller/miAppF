@@ -1,5 +1,6 @@
 import {
   collection,
+  collectionGroup,
   doc,
   setDoc,
   deleteDoc,
@@ -38,16 +39,51 @@ export async function setTeamFavorite({ teamId, userId, divisionId, favorite }) 
 }
 
 export async function getTeamFavorites() {
-  const snap = await getDocs(collection(db, COUNTERS_COLLECTION));
-  return snap.docs
-    .map((d) => {
-      const data = d.data() || {};
-      return {
+  // 1) Leer contadores existentes
+  const countersSnap = await getDocs(collection(db, COUNTERS_COLLECTION));
+  const countersMap = new Map(
+    countersSnap.docs.map((d) => [
+      d.id,
+      {
         teamId: d.id,
-        divisionId: data.divisionId || "",
-        count: Math.max(Number(data.count || 0), 0),
-      };
-    })
-    .sort((a, b) => b.count - a.count);
-}
+        divisionId: (d.data() || {}).divisionId || "",
+        count: Math.max(Number((d.data() || {}).count || 0), 0),
+      },
+    ])
+  );
 
+  // 2) Recontar desde la subcoleccion votes (agarra votos aunque no exista el doc padre)
+  const votesSnap = await getDocs(collectionGroup(db, "votes"));
+  const recomputed = new Map();
+  votesSnap.forEach((voteDoc) => {
+    const data = voteDoc.data() || {};
+    const teamId = data.teamId || data.team_id || "";
+    if (!teamId) return;
+    recomputed.set(teamId, (recomputed.get(teamId) || 0) + 1);
+  });
+
+  // 3) Mezclar resultados y persistir el contador real
+  const results = [];
+  for (const [teamId, votesCount] of recomputed.entries()) {
+    const entry = countersMap.get(teamId) || { teamId, divisionId: "", count: 0 };
+    const newCount = votesCount;
+    results.push({ ...entry, count: newCount });
+    try {
+      await setDoc(
+        doc(db, COUNTERS_COLLECTION, teamId),
+        { count: newCount, divisionId: entry.divisionId, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+    } catch {
+      // ignore write errors
+    }
+  }
+
+  // 4) Si algún contador existía pero no tiene votos, mantenerlo en la lista
+  countersMap.forEach((entry, teamId) => {
+    if (recomputed.has(teamId)) return;
+    results.push(entry);
+  });
+
+  return results.sort((a, b) => b.count - a.count);
+}

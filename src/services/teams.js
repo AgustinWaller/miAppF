@@ -1,6 +1,17 @@
 import { db } from "./firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { TEAMS_MAP } from "../data/teamsMap";
+import { TEAM_LOGOS } from "../data/teamLogos";
+import { getClubLogo } from "../assets/images";
+
+const trimValue = (value) => String(value ?? "").trim();
+const normalizeLogoField = (value) => {
+  if (value == null) return null;
+  if (typeof value === "number") return value;
+  if (typeof value === "object" && !Array.isArray(value)) return value;
+  const text = String(value).trim();
+  return text || null;
+};
 
 const normalizeKey = (value) => {
   const raw = String(value || "");
@@ -21,8 +32,58 @@ const fallbackTeamName = (teamId, currentName = "") => {
   );
 };
 
+const resolveLogoUrl = (raw, id, name) => {
+  const logoFromData =
+    [
+      raw.logoURL,
+      raw.logoUrl,
+      raw.logo_uri,
+      raw.logoURI,
+      raw.logo_url,
+      raw.logo,
+      raw.escudo,
+      raw.escudoUrl,
+      raw.escudoURL,
+      raw.escudo_uri,
+      raw.badge,
+      raw.badgeUrl,
+      raw.badgeURL,
+      raw.imageUrl,
+      raw.imageURL,
+    ]
+      .map(normalizeLogoField)
+      .find(Boolean) || null;
+
+  if (logoFromData) return logoFromData;
+
+  const normalizedId = normalizeKey(id);
+  const normalizedName = normalizeKey(name);
+  const mapped =
+    TEAM_LOGOS[normalizedId] ||
+    TEAM_LOGOS[normalizedName] ||
+    TEAM_LOGOS[id] ||
+    TEAM_LOGOS[trimValue(id)] ||
+    null;
+
+  if (mapped) return mapped;
+
+  const localLogo = getClubLogo(normalizedId) || getClubLogo(id);
+  if (localLogo) return localLogo;
+
+  return null;
+};
+
 function normalizeTeam(raw, id) {
   const r = { id, ...raw };
+  const name = fallbackTeamName(
+    id,
+    r.name ||
+      r.nombre ||
+      r.teamName ||
+      r.Nombre ||
+      r.nombreEquipo ||
+      ""
+  );
 
   return {
     id,
@@ -32,15 +93,7 @@ function normalizeTeam(raw, id) {
       r.division ||
       "A",
 
-    name: fallbackTeamName(
-      id,
-      r.name ||
-        r.nombre ||
-        r.teamName ||
-        r.Nombre ||
-        r.nombreEquipo ||
-        ""
-    ),
+    name,
 
     shortName:
       r.shortName ||
@@ -48,11 +101,7 @@ function normalizeTeam(raw, id) {
       r.name ||
       "",
 
-    logoUrl:
-      r.logoURL ||
-      r.logoUrl ||
-      r.logo ||
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/2000px-No_image_available.svg.png",
+    logoUrl: resolveLogoUrl(r, id, name),
   };
 }
 

@@ -239,15 +239,28 @@ export default function BestPlayerScreen() {
       </LinearGradient>
 
       <View style={styles.divRow}>
-        {["A", "B"].map((d) => (
-          <TouchableOpacity
-            key={d}
-            style={[styles.divBtn, division === d && styles.divBtnActive]}
-            onPress={() => setDivision(d)}
-          >
-            <Text style={[styles.divText, division === d && styles.divTextActive]}>{d}</Text>
-          </TouchableOpacity>
-        ))}
+        {["A", "B"].map((d) => {
+          const active = division === d;
+          return (
+            <TouchableOpacity
+              key={d}
+              style={[
+                styles.divBtn,
+                active && { backgroundColor: APP_COLORS.campo, borderColor: APP_COLORS.campo },
+              ]}
+              onPress={() => setDivision(d)}
+            >
+              <Text
+                style={[
+                  styles.divText,
+                  active && { color: "#0b1d33", fontWeight: "800" },
+                ]}
+              >
+                {d}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <LinearGradient colors={["#042C63", "#0B4FA7"]} style={styles.sectionCard}>
@@ -353,15 +366,15 @@ const styles = StyleSheet.create({
   divRow: { flexDirection: "row", gap: 12, marginBottom: 12, justifyContent: "center" },
   divBtn: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.4)",
+    borderColor: "rgba(255,255,255,0.85)",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.3)",
   },
   divBtnActive: { backgroundColor: APP_COLORS.campo, borderColor: APP_COLORS.campo },
-  divText: { color: "#dfefff", fontWeight: "700" },
-  divTextActive: { color: "#fff" },
+  divText: { color: "#f2f7ff", fontWeight: "800" },
+  divTextActive: { color: "#0b1d33" },
   teamLabel: { fontWeight: "700", color: "#E3F2FD" },
   teamChips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   teamChip: {

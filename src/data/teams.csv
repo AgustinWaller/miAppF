@@ -1,18 +1,19 @@
-division;team_id;name
-# division: Letra de la divisiones (A, B, etc.). Respetar mayúscula.
-# team_id: Identificador corto, en minúsculas y sin espacios. Se usa en documentos y relaciones.
-# name: Nombre completo que se muestra en la app. Usa mayúsculas y tildes correctas.
-A;sancarlos;San Carlos
-A;juventud;Juventud
-A;horqueta;Horqueta Wanderers
-A;elgeneral;El General
-A;artesano;Artesano
-A;maracana;Maracana
-A;barriosur;Barrio Sur
-B;progreso;Progreso
-B;sanpedro;San Pedro
-B;central;Central
-B;huracan;Huracan
-B;semillero;Semillero
-B;sarandi;Sarandí
-B;nacional;Nacional
+division;team_id;name;logo_url
+# division: Letra de la division (A, B, etc.). Respetar mayuscula.
+# team_id: Identificador corto, en minusculas y sin espacios. Se usa en documentos y relaciones.
+# name: Nombre completo que se muestra en la app. Usa mayusculas y tildes correctas.
+# logo_url: (opcional) URL https del escudo. Si esta vacio se usara un avatar autogenerado.
+A;sancarlos;San Carlos;https://ui-avatars.com/api/?name=San%20Carlos&background=0B4FA7&color=fff&bold=true&rounded=true&size=256
+A;juventud;Juventud;https://ui-avatars.com/api/?name=Juventud&background=15803D&color=fff&bold=true&rounded=true&size=256
+A;horqueta;Horqueta Wanderers;https://ui-avatars.com/api/?name=Horqueta%20Wanderers&background=7C3AED&color=fff&bold=true&rounded=true&size=256
+A;elgeneral;El General;https://ui-avatars.com/api/?name=El%20General&background=0284C7&color=fff&bold=true&rounded=true&size=256
+A;artesano;Artesano;https://ui-avatars.com/api/?name=Artesano&background=C2410C&color=fff&bold=true&rounded=true&size=256
+A;maracana;Maracana;https://ui-avatars.com/api/?name=Maracana&background=0F172A&color=fff&bold=true&rounded=true&size=256
+A;barriosur;Barrio Sur;https://ui-avatars.com/api/?name=Barrio%20Sur&background=2563EB&color=fff&bold=true&rounded=true&size=256
+B;progreso;Progreso;https://ui-avatars.com/api/?name=Progreso&background=F59E0B&color=fff&bold=true&rounded=true&size=256
+B;sanpedro;San Pedro;https://ui-avatars.com/api/?name=San%20Pedro&background=0EA5E9&color=fff&bold=true&rounded=true&size=256
+B;central;Central;https://ui-avatars.com/api/?name=Central&background=475569&color=fff&bold=true&rounded=true&size=256
+B;huracan;Huracan;https://ui-avatars.com/api/?name=Huracan&background=DC2626&color=fff&bold=true&rounded=true&size=256
+B;semillero;Semillero;https://ui-avatars.com/api/?name=Semillero&background=16A34A&color=fff&bold=true&rounded=true&size=256
+B;sarandi;Sarandi;https://ui-avatars.com/api/?name=Sarandi&background=A855F7&color=fff&bold=true&rounded=true&size=256
+B;nacional;Nacional;https://ui-avatars.com/api/?name=Nacional&background=1D4ED8&color=fff&bold=true&rounded=true&size=256

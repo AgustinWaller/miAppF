@@ -30,6 +30,7 @@ import { getTeamsByDivision } from "../services/teams";
 import { getOpenVotacionesByDivision } from "../services/votacion";
 import { safeImage, FALLBACK_PLAYER, FALLBACK_TEAM } from "../utils/images";
 import { TEAMS_MAP } from "../data/teamsMap";
+import { TEAM_LOGOS } from "../data/teamLogos";
 
 const normalizeKey = (value) => {
   const raw = String(value || "");
@@ -62,6 +63,30 @@ const resolveTeamName = (teamId, teamDoc) => {
   );
   if (fuzzy) return fuzzy[1];
   return teamId || "Equipo";
+};
+
+const resolveTeamLogo = (teamDoc, teamId) => {
+  const normalized = normalizeKey(teamId);
+  const buildAvatarLogo = (name) => {
+    const label = encodeURIComponent(name || teamId || "Equipo");
+    return `https://ui-avatars.com/api/?name=${label}&background=0B4FA7&color=fff&bold=true&rounded=true&size=256`;
+  };
+  const nameCandidate =
+    teamDoc?.name ||
+    teamDoc?.nombre ||
+    TEAM_NAME_LOOKUP[normalized] ||
+    TEAM_NAME_LOOKUP[teamId] ||
+    teamId ||
+    "";
+  const mappedLogo =
+    TEAM_LOGOS[normalized] ||
+    TEAM_LOGOS[teamId] ||
+    TEAM_LOGOS[nameCandidate?.toLowerCase?.()] ||
+    buildAvatarLogo(nameCandidate);
+  return safeImage(
+    teamDoc?.logoUrl || teamDoc?.logoURL || teamDoc?.logo || mappedLogo,
+    FALLBACK_TEAM
+  );
 };
 
 async function shareRanking(title, items) {
@@ -219,10 +244,7 @@ export default function ExtrasScreen() {
           player.equipo ||
           fallback ||
           "";
-        const logo = safeImage(
-          teamDoc?.logoUrl || teamDoc?.logoURL || teamDoc?.logo || "",
-          FALLBACK_TEAM
-        );
+        const logo = resolveTeamLogo(teamDoc, candidateId);
         return { name, logo };
       };
 
@@ -462,32 +484,39 @@ export default function ExtrasScreen() {
       ]);
       const allTeamsList = [...teamsDivA, ...teamsDivB];
 
-      // C. Cruzamos la informacion
-      const rankingTeams = teamFavSnap.docs
-        .map((doc) => {
-          const data = doc.data();
-          const teamId = doc.id; // En tu base de datos, el ID del documento es el ID del equipo (ej: "sancarlos")
-          const normalizedTeamId = normalizeKey(teamId);
+      // C. Cruzamos la informacion y consolidamos por teamId normalizado (evita duplicados tipo "progre"/"progreso")
+      const rankingMap = new Map();
+      teamFavSnap.docs.forEach((doc) => {
+        const data = doc.data() || {};
+        const teamId = doc.id;
+        const normalizedTeamId = normalizeKey(teamId);
+        const votos = Math.max(Number(data.count || 0), 0);
+        if (!votos) return;
 
-          const teamFound = allTeamsList.find(
-            (t) => normalizeKey(t.id) === normalizedTeamId
-          );
+        const teamFound = allTeamsList.find(
+          (t) => normalizeKey(t.id) === normalizedTeamId
+        );
+        const teamName = resolveTeamName(teamId, teamFound);
+        const teamLogo = resolveTeamLogo(teamFound, teamId);
 
-          const teamName = resolveTeamName(teamId, teamFound);
-
-          return {
-            id: teamId,
+        if (rankingMap.has(normalizedTeamId)) {
+          const prev = rankingMap.get(normalizedTeamId);
+          prev.votos += votos;
+          // conserva el logo/nombre ya calculado
+        } else {
+          rankingMap.set(normalizedTeamId, {
+            id: teamFound?.id || teamId,
             nombre: teamName,
-            teamLogo: safeImage(
-              teamFound?.logoUrl || teamFound?.logoURL || teamFound?.logo || "",
-              FALLBACK_TEAM
-            ),
-            votos: Number(data.count || 0),
-          };
-        })
-      .filter((t) => t.votos > 0) // Opcional: Ocultar los que tienen 0 votos
-      .sort((a, b) => b.votos - a.votos) // Ordenar de mayor a menor
-      .slice(0, 5); // Tomar solo los top 5
+            teamLogo,
+            votos,
+          });
+        }
+      });
+
+      const rankingTeams = Array.from(rankingMap.values())
+        .filter((t) => t.votos > 0)
+        .sort((a, b) => b.votos - a.votos)
+        .slice(0, 5);
 
       setTeamRanking(rankingTeams);
     } catch (err) {
@@ -694,9 +723,9 @@ export default function ExtrasScreen() {
           </BlueSection>
 
           <BlueSection
-            title="Top 5 Equipos mas votados"
+            title="Top 5 equipos favoritos"
             onShare={getShareHandler(
-              "Top 5 Equipos mas votados",
+              "Top 5 equipos favoritos",
               teamRanking,
               (item) => ({
                 label: item.nombre,

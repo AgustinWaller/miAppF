@@ -1,15 +1,30 @@
 // src/utils/images.js
-// Helper para usar imágenes de forma segura (fallback si falta la URL)
+// Helper para entregar siempre un source valido a <Image>
 
-export function safeImage(uri, fallback) {
-  if (!uri || typeof uri !== "string" || uri.trim() === "") return fallback;
-  // Si la uri ya es un objeto (por ejemplo require(...)) asumimos que está ok
-  if (typeof uri === "object") return uri;
-  return { uri };
+const normalizeSource = (value) => {
+  if (!value) return null;
+
+  if (typeof value === "number") return value; // require(...)
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    // Si viene como { uri: require(...) } recuperamos el number
+    if (typeof value.uri === "number") return value.uri;
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return { uri: trimmed };
+  }
+
+  return null;
+};
+
+export function safeImage(primary, fallback) {
+  return normalizeSource(primary) || normalizeSource(fallback) || null;
 }
 
-// Si preferís usar assets locales en lugar de URLs remotas,
-// reemplazá estas rutas require(...) por las correctas.
-// Ejemplo: require('../../assets/fallback/player.png')
-export const FALLBACK_PLAYER = "https://i.ibb.co/2Ncr8gD/no-player.png";
-export const FALLBACK_TEAM = "https://i.ibb.co/9pt99rg/no-team.png";
+// Fallbacks locales para evitar dependencias de red
+export const FALLBACK_PLAYER = require("../assets/placeholders/player.png");
+export const FALLBACK_TEAM = require("../assets/placeholders/club.png");
