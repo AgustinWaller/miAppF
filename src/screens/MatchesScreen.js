@@ -156,7 +156,7 @@ export default function MatchesScreen({ route, navigation }) {
   }, [filteredItems]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+    <View style={{ flex: 1, backgroundColor: APP_COLORS.fondo }}>
       <Text style={styles.debug}>Division {division} | Partidos: {items.length}</Text>
 
       <View style={styles.switchRow}>
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   reload: { marginLeft: "auto" },
   reloadTxt: { color: "#2f7d32", fontWeight: "700" },
   empty: { textAlign: "center", marginTop: 32, color: "#333" },
-  debug: { color: "#777", marginLeft: 12, marginTop: 12 },
+  debug: { color: "#2e4a2c", marginLeft: 12, marginTop: 12, fontWeight: "700" },
   fechaRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 12, paddingBottom: 8 },
   fechaBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: APP_COLORS.campo },
   fechaBtnActive: { backgroundColor: APP_COLORS.campo },

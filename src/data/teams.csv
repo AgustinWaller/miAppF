@@ -4,6 +4,7 @@ division;team_id;name;logo_url
 # name: Nombre completo que se muestra en la app. Usa mayusculas y tildes correctas.
 # logo_url: (opcional) URL https del escudo. Si esta vacio se usara un avatar autogenerado.
 A;sancarlos;San Carlos;https://ui-avatars.com/api/?name=San%20Carlos&background=0B4FA7&color=fff&bold=true&rounded=true&size=256
+A;penarol;Peñarol;https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTujkK14AXlFiTC3_EcExfrKz98tJUvhTjnRw&s
 A;juventud;Juventud;https://ui-avatars.com/api/?name=Juventud&background=15803D&color=fff&bold=true&rounded=true&size=256
 A;horqueta;Horqueta Wanderers;https://ui-avatars.com/api/?name=Horqueta%20Wanderers&background=7C3AED&color=fff&bold=true&rounded=true&size=256
 A;elgeneral;El General;https://ui-avatars.com/api/?name=El%20General&background=0284C7&color=fff&bold=true&rounded=true&size=256

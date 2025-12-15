@@ -54,10 +54,20 @@ const resolveLogoUrl = (raw, id, name) => {
       .map(normalizeLogoField)
       .find(Boolean) || null;
 
-  if (logoFromData) return logoFromData;
-
   const normalizedId = normalizeKey(id);
   const normalizedName = normalizeKey(name);
+  const compactId = normalizedId.replace(/[\s_-]+/g, "");
+  const compactName = normalizedName.replace(/[\s_-]+/g, "");
+
+  const localLogo =
+    getClubLogo(normalizedId) ||
+    getClubLogo(compactId) ||
+    getClubLogo(id) ||
+    getClubLogo(compactName);
+  if (localLogo) return localLogo;
+
+  if (logoFromData) return logoFromData;
+
   const mapped =
     TEAM_LOGOS[normalizedId] ||
     TEAM_LOGOS[normalizedName] ||
@@ -66,9 +76,6 @@ const resolveLogoUrl = (raw, id, name) => {
     null;
 
   if (mapped) return mapped;
-
-  const localLogo = getClubLogo(normalizedId) || getClubLogo(id);
-  if (localLogo) return localLogo;
 
   return null;
 };

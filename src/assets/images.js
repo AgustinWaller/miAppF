@@ -20,6 +20,7 @@ export const clubLogos = {
   sarandi: require('./clubs/sarandi.jpeg'),
   nacional: require('./clubs/nacional.png'),
   penarol: require('./clubs/penarol.jpg'),
+  "peñarol": require('./clubs/penarol.jpg'),
 };
 
 export const playerPhotos = {
@@ -27,5 +28,6 @@ export const playerPhotos = {
   // pen_canobbio: require('./players/pen_canobbio.png'),
 };
 
-export const getClubLogo = (clubId) => clubLogos[clubId] || defaultClub;
+// Devuelve el escudo local o null si no existe (para permitir otros fallbacks)
+export const getClubLogo = (clubId) => clubLogos[clubId] || null;
 export const getPlayerPhoto = (playerId) => playerPhotos[playerId] || defaultPlayer;

@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Switch } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Switch,
+  ImageBackground,
+} from "react-native";
 import { auth } from "../services/firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -53,58 +62,78 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{registerMode ? "Crear cuenta" : "Iniciar sesión"}</Text>
+    <ImageBackground
+      source={require("../../assets/FondoLogin.jpeg")}
+      style={styles.background}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay}>
+        <View style={styles.container}>
+          <Text style={styles.title}>{registerMode ? "Crear cuenta" : "Iniciar sesión"}</Text>
 
-      {errorMsg ? <Text style={styles.error}>{errorMsg}</Text> : null}
+          {errorMsg ? <Text style={styles.error}>{errorMsg}</Text> : null}
 
-      <TextInput
-        placeholder="Email"
-        placeholderTextColor="#ccc"
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-      />
+          <TextInput
+            placeholder="Email"
+            placeholderTextColor="#ccc"
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+          />
 
-      <TextInput
-        placeholder="Contraseña"
-        placeholderTextColor="#ccc"
-        secureTextEntry
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-      />
+          <TextInput
+            placeholder="Contraseña"
+            placeholderTextColor="#ccc"
+            secureTextEntry
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+          />
 
-      <View style={styles.rememberRow}>
-        <Text style={styles.rememberText}>Recordar cuenta</Text>
-        <Switch
-          value={rememberMe}
-          onValueChange={setRememberMe}
-          thumbColor={rememberMe ? "#1b5e20" : "#ccc"}
-          trackColor={{ false: "rgba(255,255,255,0.3)", true: "#a5d6a7" }}
-        />
+          <View style={styles.rememberRow}>
+            <Text style={styles.rememberText}>Recordar cuenta</Text>
+            <Switch
+              value={rememberMe}
+              onValueChange={setRememberMe}
+              thumbColor={rememberMe ? "#1b5e20" : "#ccc"}
+              trackColor={{ false: "rgba(255,255,255,0.3)", true: "#a5d6a7" }}
+            />
+          </View>
+
+          <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>
+                {registerMode ? "Registrarse" : "Ingresar"}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => setRegisterMode(!registerMode)}>
+            <Text style={styles.toggle}>
+              {registerMode
+                ? "¿Ya tenés cuenta? Iniciar sesión"
+                : "¿No tenés cuenta? Crear una"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
-
-      <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>
-          {registerMode ? "Registrarse" : "Ingresar"}
-        </Text>}
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => setRegisterMode(!registerMode)}>
-        <Text style={styles.toggle}>
-          {registerMode ? "¿Ya tenés cuenta? Iniciar sesión" : "¿No tenés cuenta? Crear una"}
-        </Text>
-      </TouchableOpacity>
-    </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(10,61,10,0.7)",
+  },
   container: {
     flex: 1,
-    backgroundColor: "#0a3d0a",
     justifyContent: "center",
     padding: 25,
   },
