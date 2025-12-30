@@ -118,7 +118,13 @@ export default function ProfileScreen() {
       setHasEditedName(false);
       Alert.alert("Perfil actualizado", "Guardamos tus datos correctamente.");
     } catch (err) {
-      Alert.alert("Error", err?.message || "No se pudo guardar el perfil.");
+      const server = err?.customData?.serverResponse;
+      Alert.alert(
+        "Error",
+        (err?.code ? `${err.code}: ` : "") +
+          (err?.message || "No se pudo guardar el perfil.") +
+          (server ? `\n${server}` : "")
+      );
     } finally {
       setSaving(false);
     }

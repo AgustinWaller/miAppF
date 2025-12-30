@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -81,15 +80,17 @@ export default function TeamsScreen({ navigation }) {
   const [userId, setUserId] = useState(null);
 
   const refreshCounts = useCallback(async () => {
+    if (!userId) {
+      setFavoriteCounts(new Map());
+      return;
+    }
     try {
       const counts = await getTeamFavorites();
-      setFavoriteCounts(
-        new Map(counts.map((item) => [item.teamId, item.count]))
-      );
+      setFavoriteCounts(new Map(counts.map((item) => [item.teamId, item.count])));
     } catch (e) {
       console.error("getTeamFavorites error", e);
     }
-  }, []);
+  }, [userId]);
 
   const load = useCallback(async () => {
     try {
@@ -114,10 +115,14 @@ export default function TeamsScreen({ navigation }) {
   }, [load]);
 
   useEffect(() => {
-    loadFavoriteTeams()
+    if (!userId) {
+      setFavorites([]);
+      return;
+    }
+    loadFavoriteTeams(userId)
       .then(setFavorites)
       .catch(() => setFavorites([]));
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (usr) => {
@@ -134,7 +139,7 @@ export default function TeamsScreen({ navigation }) {
           return;
         }
         const isFavorite = favorites.includes(team.id);
-        
+
         if (!isFavorite && favorites.length > 0 && !favorites.includes(team.id)) {
           Alert.alert(
             "Voto único",
@@ -144,7 +149,7 @@ export default function TeamsScreen({ navigation }) {
         }
 
         if (isFavorite) {
-          const updated = await removeFavoriteTeam(team.id);
+          const updated = await removeFavoriteTeam(userId, team.id);
           setFavorites(updated);
 
           await setTeamFavorite({
@@ -154,7 +159,7 @@ export default function TeamsScreen({ navigation }) {
             favorite: false,
           });
         } else {
-          const updated = await addFavoriteTeam(team.id);
+          const updated = await addFavoriteTeam(userId, team.id);
           setFavorites(updated);
 
           await setTeamFavorite({
@@ -215,7 +220,7 @@ export default function TeamsScreen({ navigation }) {
                 isFavorite && styles.favoriteIconActive,
               ]}
             >
-              {isFavorite ? "Favorito" : "Elegir"}
+              {isFavorite ? "Favorito" : "Favorito"}
             </Text>
           </TouchableOpacity>
           <Text style={styles.favoriteCount}>{count}</Text>
@@ -223,7 +228,6 @@ export default function TeamsScreen({ navigation }) {
       </LinearGradient>
     );
   };
-
 
   return (
     <View style={styles.container}>
@@ -321,6 +325,3 @@ const styles = StyleSheet.create({
   empty: { textAlign: "center", marginTop: 24, color: APP_COLORS.texto },
   debug: { color: "#c8e6c9", marginBottom: 4, fontWeight: "600" },
 });
-
-
-

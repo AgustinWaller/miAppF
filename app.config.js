@@ -11,6 +11,16 @@ export default ({ config }) => {
       sdkVersion: "52.0.0",
       platforms: ["ios", "android", "web"],
       icon: "./assets/icon.png",
+      ios: {
+        bundleIdentifier: "com.agustinwaller.myappf",
+        buildNumber: "1.0.0",
+        supportsTablet: true,
+        infoPlist: {
+          NSPhotoLibraryUsageDescription: "Se necesita acceso a tu galeria para elegir foto de perfil.",
+          NSPhotoLibraryAddUsageDescription: "Se necesita acceso para guardar tu foto de perfil.",
+          NSCameraUsageDescription: "Se necesita acceso a la camara para tomar una foto de perfil.",
+        },
+      },
       android: {
         package: "com.agustinwaller.myappf",
         adaptiveIcon: {

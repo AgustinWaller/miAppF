@@ -23,7 +23,6 @@ import LoginScreen from "./src/screens/LoginScreen";
 import LogoutScreen from "./src/screens/LogoutScreen";
 import NewsDetailScreen from "./src/screens/NewsDetailScreen";
 
-
 import { APP_COLORS } from "./src/theme/colors";
 import RootErrorBoundary from "./src/components/RootErrorBoundary";
 import { loadFavoriteTeams, subscribeFavorites } from "./src/utils/favoritesStorage";
@@ -107,7 +106,9 @@ export default function App() {
 
   useEffect(() => {
     let unsubscribeMatches = null;
+    let unsubscribeFavorites = null;
     const lastSignature = new Map();
+    const userId = auth.currentUser?.uid || null;
 
     const attachMatchListener = (favoriteList) => {
       if (unsubscribeMatches) {
@@ -156,17 +157,17 @@ export default function App() {
     };
 
     const setup = async () => {
-      const initial = await loadFavoriteTeams();
+      const initial = await loadFavoriteTeams(userId);
       attachMatchListener(initial);
+      unsubscribeFavorites = subscribeFavorites(userId, (list) => attachMatchListener(list));
     };
     setup().catch(() => {});
 
-    const unsubscribeFavorites = subscribeFavorites((list) => attachMatchListener(list));
     return () => {
-      unsubscribeFavorites();
+      if (unsubscribeFavorites) unsubscribeFavorites();
       if (unsubscribeMatches) unsubscribeMatches();
     };
-  }, []);
+  }, [user]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

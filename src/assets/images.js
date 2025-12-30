@@ -24,8 +24,11 @@ export const clubLogos = {
 };
 
 export const playerPhotos = {
+  // Agrega aquí las fotos locales de jugadores.
+  // El key debe ser el player_id de players.csv, y el require apunta al archivo en ./players/.
   // Ejemplo:
-  // pen_canobbio: require('./players/pen_canobbio.png'),
+  // penarol_lopez: require('./players/penarol_lopez.png'),
+  sancarlos_laclau: require('./players/sancarlos_laclau.jpg'),
 };
 
 // Devuelve el escudo local o null si no existe (para permitir otros fallbacks)

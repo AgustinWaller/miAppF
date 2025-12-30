@@ -46,10 +46,22 @@ export async function saveProfile(uid, payload) {
 export async function uploadProfilePhoto(uid, localUri) {
   if (!uid || !localUri) return null;
   const storageRef = ref(storage, `profiles/${uid}.jpg`);
-  const response = await fetch(localUri);
-  const blob = await response.blob();
-  await uploadBytes(storageRef, blob, {
-    contentType: blob.type || "image/jpeg",
-  });
-  return getDownloadURL(storageRef);
+  try {
+    console.log("upload start", uid, localUri);
+    const response = await fetch(localUri);
+    const blob = await response.blob();
+    console.log("upload blob", { size: blob.size, type: blob.type });
+    await uploadBytes(storageRef, blob, {
+      contentType: blob.type || "image/jpeg",
+    });
+    return getDownloadURL(storageRef);
+  } catch (err) {
+    console.log(
+      "storage error",
+      err?.code,
+      err?.message,
+      err?.customData?.serverResponse || ""
+    );
+    throw err;
+  }
 }
